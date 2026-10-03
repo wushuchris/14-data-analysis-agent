@@ -1,4 +1,4 @@
-name: Scaffold validation
+name: Tests
 
 on:
   push:
@@ -40,6 +40,7 @@ jobs:
         run: |
           python -m compileall -q src
           python -c "import service_analysis; print('Package import succeeded.')"
-      - name: Report scaffold scope
-        run: |
-          echo "Scaffold checks only. Analytical tests and release evaluations are not implemented yet."
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run deterministic tests
+        run: python -m pytest -q
