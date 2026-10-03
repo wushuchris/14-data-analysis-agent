@@ -44,6 +44,7 @@ class PreparedDataset:
     profile: DatasetProfile
     requests: tuple[CompletedRequest, ...]
     operations: tuple[DailyOperations, ...]
+    policy: QualityPolicy
     # Private snapshot is intentionally excluded from representations and profile exports.
     _original: dict = field(repr=False, compare=False)
 
@@ -196,4 +197,4 @@ def prepare_dataset(requests: list[dict], operations: list[dict], coverage: Cove
         region_ready=region_ready, workload_ready=workload_ready,
         missing_category_count=missing_category, missing_region_count=missing_region,
         issues=tuple(issues))
-    return PreparedDataset(coverage, profile, valid_requests, valid_ops, original)
+    return PreparedDataset(coverage, profile, valid_requests, valid_ops, policy, original)
