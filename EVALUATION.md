@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: schema, quality, summary/comparison, decomposition, workload, bounded execution, and structured finding verification, report, and chart tests implemented. Simulated model-adapter behavior is tested. Live provider behavior and full analytical release scenarios remain planned.
+Status: schema, quality, summary/comparison, decomposition, workload, bounded execution, and structured finding verification, report, and chart tests implemented. Simulated model-adapter behavior is tested. Synthetic scenario and deterministic UI tests are implemented. Live provider behavior and deployed production checks remain planned.
 
 ## Known-answer scenarios
 
@@ -71,6 +71,14 @@ Scripted transports cover successful planning/findings, no-transport determinist
 Tests confirm that rejected planning can fall back before tool dispatch, partial execution never replays, failed finding generation preserves calculations, mixed findings retain quarantine, and outbound context excludes source records and row-level quality locations. Audit exports exclude prompts, responses, and exception diagnostics. Schema/token/timeout settings are forwarded to transports.
 
 These tests consume no inference and establish application-boundary behavior. They do not prove provider structured-output compatibility, actual network cancellation, token-limit enforcement, or live-model analytical quality. A live transport must enforce and test those controls separately.
+
+## Implemented synthetic and UI coverage
+
+Independent January → February expectations: stable 0 hours; mix-only +12 (12 mix, 0 within); within-only +4 (0 mix, 4 within); combined +16 (12 mix, 4 within); South-only slowdown +8/3 overall and +8 in South. The constructed workload scenario has +1 pooled/per-region correlation and 84 February region-day pairs.
+
+Scenario tests cover all ten default driver outcomes, full operations coverage, all-region/category representation, missing classification withholding attribution, missing staffing blocking workload, exact-duplicate auditing, invalid source withholding records, reproducibility, and snapshot isolation.
+
+Streamlit AppTest covers the default 16 → 32 hour result, scenario replacement, category/region question, alternate periods, workload semantics, partial-data notices, invalid-record metric withholding, no tool replay on rerender, and absence of upload/credential/live-model controls. These are simulated UI checks, not a claim that the public deployment has been tested.
 
 ## Minimum test package
 

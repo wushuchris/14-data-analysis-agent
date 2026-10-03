@@ -1,6 +1,6 @@
 # Architecture
 
-Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Bounded planning and execution are implemented. Structured numerical findings and evidence verification are implemented. Report assembly and standalone SVG charts are implemented. A provider-neutral model boundary is implemented. Free-form interpretation, live provider transport, and the demo UI remain planned.
+Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Bounded planning and execution are implemented. Structured numerical findings and evidence verification are implemented. Report assembly and standalone SVG charts are implemented. A provider-neutral model boundary is implemented. The deterministic Streamlit UI is implemented. Free-form interpretation, live provider transport, and public deployment remain planned.
 
 ## Stages and contracts
 
@@ -108,7 +108,7 @@ Accepted observations use fixed application wording. Drafts cannot supply arbitr
 
 The deterministic fallback selects up to 20 defined catalog metrics and passes them through the same verifier. FindingsReport status describes verification, independently of RunReport and source result statuses. An empty result means there were no proposed/available findings; it does not imply stable business performance.
 
-The catalog consumes application-owned run objects. It cannot authenticate externally modified persisted records or prove a trusted tool was actually executed using a hash alone. Production report imports would require provenance and access controls. Narrative evaluation and the final interactive UI remain later milestones. Report assembly and chart consistency controls are described below.
+The catalog consumes application-owned run objects. It cannot authenticate externally modified persisted records or prove a trusted tool was actually executed using a hash alone. Production report imports would require provenance and access controls. Narrative evaluation and deployed browser production checks remain later milestones. Report assembly and chart consistency controls are described below.
 
 ## Implemented report and chart boundary
 
@@ -122,7 +122,7 @@ Mean and mean-change bars include zero; signed changes retain their sign. Correl
 
 Report IDs hash the assembled payload including the run identity. Reassembly of the same run/proposals is stable; different executions have distinct report IDs. Chart IDs depend on result identity, chart kind, and rendering-contract version. These identifiers provide traceability, not authentication of external files.
 
-JSON exports contain aggregate evidence and sanitized run events, not original request records. There is no external report-import endpoint. The standard-library SVG renderer adds no plotting dependency. Interactive UI presentation and production deployment remain separate milestones.
+JSON exports contain aggregate evidence and sanitized run events, not original request records. There is no external report-import endpoint. The standard-library SVG renderer adds no plotting dependency. The deterministic UI is described below; production deployment remains a separate milestone.
 
 ## Implemented model boundary
 
@@ -139,6 +139,18 @@ Initial operational failure selects deterministic mode without another provider 
 AssistedAnalysis retains computation report, execution, optional rejected planning/finding attempts, model events, call count, explicit planning/finding sources, fallback codes, and requested-work coverage. Model events reflect transport activity but do not claim a generated result passed semantic validation; plan and finding checks remain independently visible.
 
 The adapter enforces call and byte budgets. The injected transport must enforce timeout and generation-token limits; this synchronous protocol cannot interrupt a transport that ignores those limits. No live provider, SDK, secret, endpoint, or inference cost is introduced at this milestone. Provider-specific schema support, refusal mapping, timeout behavior, billing, and production checks remain future integration work.
+
+## Synthetic scenarios and UI
+
+demo_data generates reproducible public-safe records for January–March 2026, three regions, and three service categories. Nine scenarios use all three categories; the constructed workload scenario isolates one category and a known +1 association. Fixed scenario keys and month comparisons are application-owned. Known-answer tests check expected mean, mix, and within-category changes independently of engine parity.
+
+app.py is a thin Streamlit presentation layer. Submitted controls select a scenario, supported question, and ordered month comparison. The workload opening period is the comparison month. Preparation, execution, finding verification, report assembly, and SVG rendering remain in the existing domain modules.
+
+A default deterministic analysis runs once for a fresh session. Submitted changes replace the session-local report and its selection together; stale output is cleared before an attempted replacement. Ordinary rerenders reuse the report without replaying tools. There is no persistent checkpoint or resume claim.
+
+The UI leads with baseline/comparison means and change, then evidence-supported findings, charts, preparation quality, and real run events. Samples distinguish selected-period counts from whole-dataset input counts. Missing conclusions remain visibly partial/unavailable. General investigation topics are labeled as follow-ups, not causal findings. Downloads contain aggregate report evidence or rendered charts.
+
+The demo accepts no uploaded business data, free-form prompts, secrets, or live-provider controls. No inference calls occur. Streamlit AppTest exercises user selections and displayed outputs in CI; deployed browser layout and download checks remain release gates.
 
 ## Runtime and security
 

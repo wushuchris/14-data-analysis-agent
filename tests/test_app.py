@@ -1,9 +1,10 @@
+from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
 
 def app():
-    return AppTest.from_file("app.py", default_timeout=30).run()
+    return AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"), default_timeout=30).run()
 
 
 def submit(at, scenario=None, question=None, comparison=None):

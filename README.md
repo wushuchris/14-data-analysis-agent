@@ -2,7 +2,7 @@
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. A live provider transport and public demo are not yet available.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. The deterministic Streamlit demo is implemented. Live provider transport and public deployment are not yet configured.**
 
 ## The problem
 
@@ -101,7 +101,7 @@ Plans can select only summarize, compare, decompose, and workload calls. The app
 
 The run reserves at most six top-level steps across at most two accepted rounds. Blocked and skipped steps still consume reserved slots. Dependencies use zero-based positions across the whole run; application-generated IDs appear in outcomes. Only a completed prerequisite allows its dependent step to execute. Independent steps can continue after another step fails.
 
-Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. The provider-neutral model boundary is available below; a live transport and the public demo remain to be built.
+Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. The provider-neutral model boundary and deterministic demo are available below; live transport and public deployment remain to be configured.
 
 ## Structured findings and evidence verification
 
@@ -127,7 +127,7 @@ These evidence interfaces trust application-owned run objects. Typed fields and 
 
 Bar scales include zero; negative changes extend left of zero. Correlations use a fixed -1 to +1 domain. Undefined values display as unavailable and receive no bar. Decomposition components and the observed total are separate bars, not stacked together. Chart specifications and renderers are application-owned.
 
-The chart renderer uses the Python standard library and existing schema dependency. No plotting framework or model call is needed. The interactive demo UI and deployment are later milestones.
+The chart renderer uses the Python standard library and existing schema dependency. No plotting framework or model call is needed. The interactive demo UI is implemented below; deployment remains a later milestone.
 
 ## Bounded model adapter
 
@@ -144,6 +144,25 @@ The returned AssistedAnalysis records planning/finding sources, model-call event
 Default request controls are 2,000 output tokens, a 20-second timeout, 32 KiB responses, 64 evidence facts, and 64 KiB combined input/schema/instructions. The adapter checks byte and call budgets itself; the transport must enforce token limits and network timeout. A synchronous transport that ignores timeout cannot be interrupted by this module.
 
 All model-adapter tests use simulated responses. Live provider compatibility, structured-output translation, cost, and actual timeout behavior must be checked when implementing the transport.
+
+## Explore the synthetic demo
+
+Run the application with Python 3.11 or later:
+
+```bash
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
+```
+
+The first screen shows the combined-change example: January mean 16 hours, February mean 32 hours, +16 hours overall. Arithmetic decomposition attributes +12 hours to category mix and +4 to within-category changes.
+
+Select one of ten scenarios, three questions, and three ordered month comparisons. Run analysis to replace the displayed report. Findings and charts appear alongside data-quality details and actual execution evidence. Reports and charts can be downloaded as aggregate JSON and SVG.
+
+Bundled scenarios cover stable operation, mix change, slower handling, combined change, regional slowdown, constructed workload association, missing categories, missing staffing, exact duplicates, and invalid timestamps. The generator is deterministic and uses three regions, three service categories, and three full months. The workload-only scenario intentionally contains one service category.
+
+This UI accepts only bundled synthetic data and has no upload, secret-entry, or live-model controls. It runs without inference credentials. The displayed selection is stored with its report; ordinary rerenders do not execute tools again. State is session-local and does not claim durable reload/resume.
+
+CI includes independent scenario oracles and Streamlit AppTest checks for default/alternate selections, incomplete data, failed source validation, execution counts, and rerender behavior. A browser production check will follow deployment.
 
 ## License
 
