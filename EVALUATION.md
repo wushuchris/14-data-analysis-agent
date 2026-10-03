@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: schema, quality, summary/comparison, decomposition, and workload tests implemented. Model behavior and full analytical release scenarios remain planned.
+Status: schema, quality, summary/comparison, decomposition, workload, and bounded execution tests implemented. Model behavior and full analytical release scenarios remain planned.
 
 ## Known-answer scenarios
 
@@ -41,6 +41,12 @@ The SQL/Pandas agreement check is supported by independent arithmetic expectatio
 Independent known-answer positive (+1), negative (-1), and symmetric zero correlations; daily ratios and cohort means; repeated requests without repeated workload weighting; pooled/per-region outputs; insufficient samples; constant inputs; absent observed cohorts; coverage/staffing gates; opening-versus-resolution selection; SQL pair disagreement; independent correlation disagreement; safe numeric limits; required limitations; null exports; and policy/filter-sensitive identities.
 
 The association is descriptive. A computed coefficient is not evidence of statistical significance or causation.
+
+## Implemented planning and execution coverage
+
+Real multi-tool recipes, full-round rejection before dispatch, unknown tools and fields, forged IDs, invalid dependencies, duplicate calls within/across rounds, invalid periods, malformed/oversized JSON, duplicate JSON keys, and nonfinite JSON values.
+
+Control-flow tests cover one correction shared across rounds, one evidence-informed follow-up, shared six-step limits, exhausted-budget short-circuiting, blocked/partial prerequisites, independent continuation, sanitized adapter/tool failures, mismatched output type/dataset/period, actual streaming order, isolated run IDs, and stable result IDs. All use deterministic inputs and no model calls.
 
 ## Minimum test package
 

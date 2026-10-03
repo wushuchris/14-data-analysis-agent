@@ -2,7 +2,7 @@
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association implemented. Model integration and public demo are not yet available.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning and execution implemented. Model integration and public demo are not yet available.**
 
 ## The problem
 
@@ -90,6 +90,18 @@ Each region-day has equal weight; request counts are reported rather than used t
 Pooled and per-region correlations are reported with pair counts. The default minimum is 5 region-day pairs, configurable by application-owned AssociationPolicy (minimum 3). Smaller samples or constant inputs yield null coefficients. Available coefficients must agree between Pandas and Python's statistics implementation. No significance, causal, or predictive claim is made.
 
 Every result discloses completed-request selection bias, unadjusted case mix and temporal dependence, and potential regional confounding. Missing workload coverage or staffing blocks the tool. Invalid numeric limits and engine disagreement fail explicitly.
+
+## Bounded planning and execution
+
+Three deterministic recipes are available through `deterministic_plan()`: `resolution_change`, `segments`, and `drivers`. Drivers require an explicit opening-date period for workload analysis.
+
+`run_analysis(dataset, plan)` returns a typed run report. `run_analysis_iter()` streams actual lifecycle events followed by that report. An optional application adapter can propose one follow-up plan using computed outcomes, and one rejected plan can receive a correction. No model service is connected yet.
+
+Plans can select only summarize, compare, decompose, and workload calls. The application rejects unknown fields/tools, duplicate calls, invalid dependencies, out-of-coverage periods, and overlapping comparisons before executing any step in that round. Plans cannot change calculation or quality policy.
+
+The run reserves at most six top-level steps across at most two accepted rounds. Blocked and skipped steps still consume reserved slots. Dependencies use zero-based positions across the whole run; application-generated IDs appear in outcomes. Only a completed prerequisite allows its dependent step to execute. Independent steps can continue after another step fails.
+
+Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; narrative evidence verification and report publication remain to be built.
 
 ## License
 

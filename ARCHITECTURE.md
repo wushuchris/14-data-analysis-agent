@@ -1,13 +1,13 @@
 # Architecture
 
-Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Planning, interpretation, verification, and reporting remain planned.
+Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Bounded planning and execution are implemented. Interpretation, narrative verification, and reporting remain planned.
 
 ## Stages and contracts
 
 | Stage | Responsibility | Contract |
 |---|---|---|
 | Intake | Validate tables, record exclusions, assess coverage | DatasetProfile |
-| Planning | Choose approved operations and dependencies | AnalysisPlan / AnalysisStep |
+| Planning | Choose approved operations and dependencies | AnalysisPlan / CompiledStep |
 | Execution | Run validated Pandas operations and controlled SQL | MetricResult |
 | Interpretation | Propose observations, interpretations, limitations | FindingDraft |
 | Verification | Validate evidence and numerical references | VerifiedFinding |
@@ -25,7 +25,7 @@ Application-assigned IDs identify steps, results, findings, and events. Generate
 
 Plans specify operation names, supported periods, grouping, and dependencies. Validate the full plan before execution. Require dependencies to reference valid preceding steps. SQL is generated from application-owned templates with bound values and approved identifiers, against in-memory tables. Model-generated Python and SQL are not executed.
 
-Initial budget: six executed analysis steps total across the initial plan and at most one follow-up planning round. One rejected plan may receive one bounded correction; correction does not grant another execution budget.
+Initial budget: six reserved top-level analysis steps total across the initial plan and at most one follow-up planning round. One rejected plan may receive one bounded correction; correction does not grant another execution budget.
 
 ## Result provenance and publication
 
@@ -84,7 +84,17 @@ Result identity includes dataset identity, opening period, method version, and c
 - Exhausted budget: stop and label the report incomplete.
 - Missing workload coverage: withhold affected workload conclusions.
 
-Workflow states and result statuses will be typed. Blocked, failed, partial, and completed outcomes remain distinct. Retries apply only to explicitly retryable operational failures.
+Workflow states and result statuses are typed. Blocked, failed, partial, and completed outcomes remain distinct. Retries apply only to explicitly retryable operational failures.
+
+## Implemented execution contract
+
+Closed discriminated call schemas reject extra fields. JSON intake rejects duplicate keys, nonfinite values, and plans larger than 32 KiB. Entire-round validation precedes dispatch, including duplicate detection across rounds. Dependencies reference preceding global zero-based step positions; the application assigns step-001 and subsequent IDs.
+
+The six-slot budget includes blocked and skipped steps; tool_calls separately counts dispatched top-level calls. Internal calculations within comparison/decomposition do not consume additional planner slots. There are at most two accepted rounds and one correction across the whole run. A follow-up adapter receives typed outcomes and remaining slots. If the budget is exhausted, it is not invoked and the run is marked partial.
+
+Each step passes its data-quality gate before dispatch through a fixed application registry. Dependents of partial, blocked, failed, or skipped steps are skipped. Independent work continues. Returned result schemas, dataset identity, grouping, and periods are checked before outcomes expose results. Calculation disagreement and invalid output are failures; missing data blocks analysis. Raw exceptions never enter public events.
+
+Run IDs are unique; result IDs remain deterministic. The iterator yields real lifecycle events and a final RunReport. Abandoning the iterator stops subsequent work; there is no durable persistence or resume guarantee. Deterministic tool failures are not retried. Provider timeouts, model integration, and deterministic narrative fallback remain future work.
 
 ## Runtime and security
 
