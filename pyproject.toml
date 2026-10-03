@@ -1,0 +1,11 @@
+[project]
+name = "service-operations-analysis"
+version = "0.1.0"
+description = "Governed analysis of synthetic service operations data"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"

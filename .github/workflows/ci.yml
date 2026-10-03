@@ -1,0 +1,45 @@
+name: Scaffold validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scaffold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Validate project metadata
+        run: |
+          python - <<'PY'
+          import pathlib
+          import tomllib
+          project = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]
+          assert project["name"] == "service-operations-analysis"
+          print("Project metadata parsed successfully.")
+          PY
+      - name: Validate package syntax and import
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m compileall -q src
+          python -c "import service_analysis; print('Package import succeeded.')"
+      - name: Report scaffold scope
+        run: |
+          echo "Scaffold checks only. Analytical tests and release evaluations are not implemented yet."
