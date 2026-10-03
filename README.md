@@ -2,7 +2,7 @@
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification implemented. Model integration and public demo are not yet available.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. Model integration and public demo are not yet available.**
 
 ## The problem
 
@@ -101,7 +101,7 @@ Plans can select only summarize, compare, decompose, and workload calls. The app
 
 The run reserves at most six top-level steps across at most two accepted rounds. Blocked and skipped steps still consume reserved slots. Dependencies use zero-based positions across the whole run; application-generated IDs appear in outcomes. Only a completed prerequisite allows its dependent step to execute. Independent steps can continue after another step fails.
 
-Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Charts, report assembly, and model integration remain to be built.
+Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. Model integration and the public demo remain to be built.
 
 ## Structured findings and evidence verification
 
@@ -116,6 +116,18 @@ Numerical observations are rendered by application code from the actual evidence
 Example: the 14 → 26 hour scenario can publish a +12 hour mean-change observation and a +12 hour arithmetic mix contribution. Claiming +20 hours is quarantined. An incomplete decomposition cannot supply an attribution claim, and an unavailable correlation cannot become zero.
 
 These evidence interfaces trust application-owned run objects. Typed fields and content IDs do not authenticate an uploaded or externally modified report. A future production import path would need provenance/authentication controls.
+
+## Reports and charts
+
+`assemble_report(run_report)` produces an AnalysisReport with a management summary, verified findings, calculation caveats, step outcomes, actual execution events, and evidence-backed chart specifications. Omitted finding drafts use the deterministic fallback. Explicit invalid or empty drafts keep their rejection/empty status; valid charts can still show independent calculation evidence.
+
+`export_report_json(report)` exports aggregate evidence and provenance without raw request records. Report status is complete, partial, or unavailable, with execution and finding statuses retained separately. A blocked analysis or quarantined finding prevents an overall complete status. Completion describes the requested work, not causal validity or statistical significance.
+
+`render_chart_svg(chart)` creates a standalone SVG with an accessible title/description, periods, selection rule, units, sample sizes, and plain-language caveats. Supported charts show mean resolution time, mean changes by group, arithmetic decomposition, and pooled/regional workload correlation. Every plotted scalar retains its evidence reference.
+
+Bar scales include zero; negative changes extend left of zero. Correlations use a fixed -1 to +1 domain. Undefined values display as unavailable and receive no bar. Decomposition components and the observed total are separate bars, not stacked together. Chart specifications and renderers are application-owned.
+
+The chart renderer uses the Python standard library and existing schema dependency. No plotting framework or model call is needed. The interactive demo UI and deployment are later milestones.
 
 ## License
 

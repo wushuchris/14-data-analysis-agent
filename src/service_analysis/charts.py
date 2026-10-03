@@ -9,6 +9,37 @@ from service_analysis.analysis import _identity
 from service_analysis.findings import EvidenceFact
 
 
+WARNING_TEXT = {
+    "COMPLETED_REQUESTS_ONLY": "Only completed requests are included; unresolved backlog is not measured.",
+    "TINY_PERIOD_GROUP": "Some period groups have very small samples.",
+    "UNEQUAL_PERIOD_LENGTHS_COUNTS_NOT_RATES": "Periods have different lengths; count changes are not rate changes.",
+    "RAW_COUNTS_NOT_RATES": "Request counts are totals, not rates.",
+    "MISSING_CLASSIFICATION_EXCLUDED": "Records with missing classifications are excluded from grouped calculations.",
+    "EXACT_DUPLICATES_REMOVED": "Exact duplicate records were removed.",
+    "NO_OBSERVATIONS": "No completed requests were observed for this selection.",
+    "MISSING_PERIOD_GROUP": "At least one group has no observations in one period.",
+    "ZERO_BASELINE_PERCENT_UNDEFINED": "Percentage change is undefined when the baseline value is zero.",
+    "ARITHMETIC_ATTRIBUTION_NOT_CAUSATION": "Contributions describe arithmetic differences and do not establish causes.",
+    "MEAN_ONLY": "This decomposition explains changes in the mean, not the median.",
+    "NO_CATEGORY_EVIDENCE": "Category evidence is unavailable.",
+    "EMPTY_PERIOD_DECOMPOSITION_UNAVAILABLE": "An empty period prevents decomposition.",
+    "UNCLASSIFIED_REQUESTS_DECOMPOSITION_UNAVAILABLE": "Missing classifications prevent complete attribution.",
+    "CATEGORY_SUPPORT_CHANGED": "Observed categories differ between periods, preventing complete attribution.",
+    "ASSOCIATION_NOT_CAUSATION": "Correlation does not establish a cause.",
+    "COMPLETED_REQUEST_SELECTION_BIAS": "The observed completed cohort may not represent all incoming requests.",
+    "CASE_MIX_NOT_ADJUSTED": "Workload associations do not adjust for service-category mix.",
+    "TEMPORAL_DEPENDENCE_NOT_ADJUSTED": "Associations do not adjust for dependence between nearby dates.",
+    "EQUAL_REGION_DAY_WEIGHT": "Each observed region-day receives equal weight.",
+    "POOLED_REGIONS_MAY_CONFOUND": "Regional differences can distort the pooled association.",
+    "NO_SIGNIFICANCE_TEST": "No statistical significance test has been performed.",
+    "REGION_DAYS_WITHOUT_COMPLETED_COHORT_EXCLUDED": "Days without an observed completed cohort are unpaired.",
+    "TINY_DAILY_COHORT": "Some daily cohorts contain very few completed requests.",
+    "INSUFFICIENT_PAIR_COUNT": "Some associations have too few paired observations.",
+    "CONSTANT_INPUT_CORRELATION_UNDEFINED": "Correlation is undefined for constant inputs.",
+    "NUMERICAL_CORRELATION_UNAVAILABLE": "A correlation could not be computed reliably.",
+}
+
+
 class ChartPoint(Contract):
     label: str
     evidence: EvidenceFact
@@ -116,7 +147,9 @@ def render_chart_svg(chart: ChartSpec) -> str:
         ("Pearson r" if chart.kind == "correlation" else "elapsed calendar hours") + ".",
         "n follows period order and counts " + first.sample_unit.replace("_", " ") +
         ". Missing values are unavailable, not zero.",
-        "Chart status: " + chart.status + ". Caveat codes: " + ", ".join(chart.warnings),
+        "Chart status: " + chart.status + ".",
+        *[WARNING_TEXT.get(code, "Additional limitation: " + code.lower().replace("_", " ") + ".")
+          for code in chart.warnings],
     ]
     lines = [line for caption in captions for line in wrap(caption, width=112)]
     height = bottom + 45 + 18 * len(lines)

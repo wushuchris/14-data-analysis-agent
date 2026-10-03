@@ -1,6 +1,6 @@
 # Architecture
 
-Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Bounded planning and execution are implemented. Structured numerical findings and evidence verification are implemented. Free-form interpretation, charts, and report assembly remain planned.
+Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Bounded planning and execution are implemented. Structured numerical findings and evidence verification are implemented. Report assembly and standalone SVG charts are implemented. Free-form interpretation, model integration, and the demo UI remain planned.
 
 ## Stages and contracts
 
@@ -108,7 +108,21 @@ Accepted observations use fixed application wording. Drafts cannot supply arbitr
 
 The deterministic fallback selects up to 20 defined catalog metrics and passes them through the same verifier. FindingsReport status describes verification, independently of RunReport and source result statuses. An empty result means there were no proposed/available findings; it does not imply stable business performance.
 
-The catalog consumes application-owned run objects. It cannot authenticate externally modified persisted records or prove a trusted tool was actually executed using a hash alone. Production report imports would require provenance and access controls. UI formatting, chart consistency, narrative evaluation, and full report publication are later milestones.
+The catalog consumes application-owned run objects. It cannot authenticate externally modified persisted records or prove a trusted tool was actually executed using a hash alone. Production report imports would require provenance and access controls. Narrative evaluation and the final interactive UI remain later milestones. Report assembly and chart consistency controls are described below.
+
+## Implemented report and chart boundary
+
+assemble_report consumes an application-owned RunReport plus optional raw finding proposals. It rebuilds the evidence catalog and verifies proposals; it does not accept a caller-supplied VerifiedFinding or FindingsReport as publication authority. Omitted proposals invoke the deterministic fallback, while explicit invalid/empty proposals retain their status.
+
+AnalysisReport preserves execution status, finding verification outcomes, up to five management-summary items linked to accepted finding IDs, charts, caveats, step summaries, budget counts, and actual run events. Overall completion requires completed execution, completed finding verification, and complete charts. Available calculations survive partial execution or quarantined findings. An unavailable report never claims stable performance.
+
+Charts independently project approved calculation metrics, so rejection of a narrative proposal does not discard valid calculation evidence. Each ChartPoint carries the same EvidenceFact used by verification. ChartSpec checks common dataset, result, units, periods, selection, allowed metrics, finite values, unique evidence IDs, and correlation bounds. The renderer revalidates the specification before producing escaped SVG.
+
+Mean and mean-change bars include zero; signed changes retain their sign. Correlation domains are always [-1, 1]. Missing values render an unavailable label without a bar. Decomposition total and component bars are separate; no stacked sum includes the observed total. Metadata preserves samples, denominators, exclusions, and required warnings; visible SVG captions translate warnings into plain language.
+
+Report IDs hash the assembled payload including the run identity. Reassembly of the same run/proposals is stable; different executions have distinct report IDs. Chart IDs depend on result identity, chart kind, and rendering-contract version. These identifiers provide traceability, not authentication of external files.
+
+JSON exports contain aggregate evidence and sanitized run events, not original request records. There is no external report-import endpoint. The standard-library SVG renderer adds no plotting dependency. Interactive UI presentation and production deployment remain separate milestones.
 
 ## Runtime and security
 

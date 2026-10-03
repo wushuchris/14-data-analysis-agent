@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: schema, quality, summary/comparison, decomposition, workload, bounded execution, and structured finding verification tests implemented. Model behavior and full analytical release scenarios remain planned.
+Status: schema, quality, summary/comparison, decomposition, workload, bounded execution, and structured finding verification, report, and chart tests implemented. Model behavior and full analytical release scenarios remain planned.
 
 ## Known-answer scenarios
 
@@ -55,6 +55,14 @@ Known-answer metric references, units, periods, selection semantics, samples and
 Incomplete attribution and undefined percentages/correlations cannot be published as zero. Partially classified comparisons retain exclusion counts. Workload findings distinguish region-day samples from completed-request counts and preserve noncausal, selection, temporal, and significance limitations. Tampered application result scope, status, and nested dataset identity fail closed.
 
 Tests validate the structured numerical boundary. They do not certify arbitrary prose, causal interpretations, statistical significance, or externally imported report authenticity. Those capabilities are not claimed.
+
+## Implemented report and chart coverage
+
+Report summaries link to verified findings; chart values and findings share catalog facts. Tests cover blocked execution, quarantine with retained valid work, explicit empty/rejected proposals, unavailable runs, classification exclusions, stable report/chart identities, aggregate-only JSON exports, and actual execution-event retention.
+
+Known-answer charts cover summary means, group changes, decomposition components, and correlations. Positive, negative, and zero changes use a zero-inclusive domain; correlation scales remain [-1, 1]. Undefined contributions and correlations have no bars. SVG tests verify XML structure, escaped text, accessible descriptions, and rejection of scope/unit/nonfinite tampering. A rendered negative-change decomposition was inspected for layout and signed-bar behavior.
+
+These are deterministic reports and standalone SVG charts. Interactive UI behavior and final deployed presentation still require live checks.
 
 ## Minimum test package
 
