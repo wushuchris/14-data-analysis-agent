@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: schema, quality, summary/comparison, and decomposition tests implemented. Workload, model behavior, and full analytical release scenarios remain planned.
+Status: schema, quality, summary/comparison, decomposition, and workload tests implemented. Model behavior and full analytical release scenarios remain planned.
 
 ## Known-answer scenarios
 
@@ -35,6 +35,12 @@ Also cover improvements, unchanged means, one category, zero durations, scaled o
 Hand-computed odd/even medians, repeated values, zero and fractional durations, skewed distributions, period filtering, UTC boundaries, category/region breakdowns, classification exclusions, empty periods, zero-baseline percentages, missing period groups, unequal windows, quality gate enforcement, injected grouping rejection, engine disagreement, stable result identity, JSON null handling, and duplicate/policy provenance.
 
 The SQL/Pandas agreement check is supported by independent arithmetic expectations; engine parity alone does not prove correctness.
+
+## Implemented workload coverage
+
+Independent known-answer positive (+1), negative (-1), and symmetric zero correlations; daily ratios and cohort means; repeated requests without repeated workload weighting; pooled/per-region outputs; insufficient samples; constant inputs; absent observed cohorts; coverage/staffing gates; opening-versus-resolution selection; SQL pair disagreement; independent correlation disagreement; safe numeric limits; required limitations; null exports; and policy/filter-sensitive identities.
+
+The association is descriptive. A computed coefficient is not evidence of statistical significance or causation.
 
 ## Minimum test package
 

@@ -2,7 +2,7 @@
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, and reconciled case-mix decomposition implemented. Workload analysis, model integration, and public demo are not yet available.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association implemented. Model integration and public demo are not yet available.**
 
 ## The problem
 
@@ -67,8 +67,9 @@ python -m pytest -q
 - `summarize_resolution(dataset, period, grouping)`: count, mean, and median for completed requests, overall or by category/region.
 - `compare_periods(dataset, baseline, comparison, grouping)`: duration changes, percentage changes, and raw count differences.
 - `decompose_case_mix(dataset, baseline, comparison)`: symmetric attribution of the mean change to category proportions and within-category mean changes.
+- `analyze_workload(dataset, opening_period)`: descriptive Pearson correlations between incoming requests per staffed hour and completed-cohort mean resolution time, using equal-weight region-day pairs.
 
-Both enforce quality gates and declared coverage. Pandas results must agree with controlled, parameterized in-memory SQL before publication. Medians are calculated independently in SQL using ranked observations.
+Summary and comparison tools enforce quality gates and declared resolution coverage. Pandas results must agree with controlled, parameterized in-memory SQL before publication. Medians are calculated independently in SQL using ranked observations.
 
 Results include stable IDs, normalized dataset identity, periods, population/inclusion counts, missing-classification exclusions, duplicate counts, calculation versions, and warnings. IDs are deterministic content identities, not authorization credentials.
 
@@ -79,6 +80,16 @@ The decomposition checks that mix and within-category contributions sum to the o
 Example: the known 14 → 26 hour scenario yields +12 hours from mix and 0 from within-category changes. A combined scenario yields +17.2 hours overall: +13.2 from mix and +4 from within-category changes.
 
 These are arithmetic contributions to observed differences, not causal estimates. The method applies to means, not medians.
+
+## Workload association boundaries
+
+Workload analysis selects requests by **opening date**, within declared operations coverage. It pairs each region-day's incoming requests / staffed hours with the mean elapsed resolution time of observed completed requests opened on that region-day. Pair construction is checked independently in Pandas and SQL.
+
+Each region-day has equal weight; request counts are reported rather than used to replicate the workload measurement. Days without an observed completed-request cohort remain unpaired, not zero-duration observations.
+
+Pooled and per-region correlations are reported with pair counts. The default minimum is 5 region-day pairs, configurable by application-owned AssociationPolicy (minimum 3). Smaller samples or constant inputs yield null coefficients. Available coefficients must agree between Pandas and Python's statistics implementation. No significance, causal, or predictive claim is made.
+
+Every result discloses completed-request selection bias, unadjusted case mix and temporal dependence, and potential regional confounding. Missing workload coverage or staffing blocks the tool. Invalid numeric limits and engine disagreement fail explicitly.
 
 ## License
 

@@ -1,6 +1,6 @@
 # Architecture
 
-Status: intake, resolution summary/comparison, and mean-change decomposition implemented. Planning, workload analysis, interpretation, verification, and reporting remain planned.
+Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Planning, interpretation, verification, and reporting remain planned.
 
 ## Stages and contracts
 
@@ -60,6 +60,20 @@ Require observations for each observed category in both periods and no unclassif
 Category shares use the entire period's completed-request population as denominator. Complete results contain category counts, shares, means, per-category contributions, totals, and a reconciliation residual. Totals use compensated summation and must agree with the overall mean change within the summary calculation tolerances. A disagreement raises CalculationMismatch before returning a result. Result validation also requires complete evidence and category contributions that sum to the totals.
 
 The stable result identity includes the method version and referenced comparison IDs. Warnings preserve tiny groups, unequal period lengths, and completed-request limitations. Every result states that it is arithmetic attribution rather than causation, and that it applies to means rather than medians.
+
+## Workload association
+
+The tool accepts an opening-date period within declared operations coverage and requires the dataset workload gate. It aggregates completed-request durations by opening date and region, then joins the unique operations row on that key.
+
+Each observed region-day pair contains incoming requests, staffed hours, their ratio, completed-cohort sample size, and mean duration. Independent Pandas and fixed SQLite joins/aggregations must agree. SQL uses only application-owned statements, query-only connections after population, and typed prefiltered records.
+
+Pearson correlation is calculated over equal-weight region-day pairs, pooled and for each declared region. Positive rescaling limits numerical overflow; Pandas and Python statistics results must agree within the documented tolerances. Application-owned AssociationPolicy requires at least 5 pairs by default and never permits fewer than 3. Insufficient pairs, constant variables, and numerically unavailable coefficients produce explicit null results. Safe numeric-limit violations or independent-engine disagreement raise errors.
+
+Eligible, paired, and unpaired region-day counts are explicit. Operations days without observed completed cohorts do not acquire invented durations. Pair and request counts remain distinct.
+
+This descriptive analysis does not adjust for category mix, autocorrelation, regional confounding, or completed-request selection/right-censoring. It supplies neither p-values nor confidence intervals. These limitations are required warnings, not discretionary model text. A complete result means a coefficient was computable, not that it is statistically significant or causally valid.
+
+Result identity includes dataset identity, opening period, method version, and correlation policy. Exports contain validated pair tables and aggregate coefficients, not raw request identifiers.
 
 ## Failure outcomes
 
