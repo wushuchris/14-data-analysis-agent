@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: schema, quality, summary/comparison, decomposition, workload, and bounded execution tests implemented. Model behavior and full analytical release scenarios remain planned.
+Status: schema, quality, summary/comparison, decomposition, workload, bounded execution, and structured finding verification tests implemented. Model behavior and full analytical release scenarios remain planned.
 
 ## Known-answer scenarios
 
@@ -47,6 +47,14 @@ The association is descriptive. A computed coefficient is not evidence of statis
 Real multi-tool recipes, full-round rejection before dispatch, unknown tools and fields, forged IDs, invalid dependencies, duplicate calls within/across rounds, invalid periods, malformed/oversized JSON, duplicate JSON keys, and nonfinite JSON values.
 
 Control-flow tests cover one correction shared across rounds, one evidence-informed follow-up, shared six-step limits, exhausted-budget short-circuiting, blocked/partial prerequisites, independent continuation, sanitized adapter/tool failures, mismatched output type/dataset/period, actual streaming order, isolated run IDs, and stable result IDs. All use deterministic inputs and no model calls.
+
+## Implemented finding coverage
+
+Known-answer metric references, units, periods, selection semantics, samples and denominators; exact count matching and floating-point tolerances; unknown results/groups/metrics; forbidden observation text, forged IDs, and limitation overrides; unsupported investigation topics; duplicate proposals; valid-item retention with quarantine; malformed, oversized, and nonfinite envelopes; numeric coercion rejection; stable finding IDs and bounded deterministic fallback.
+
+Incomplete attribution and undefined percentages/correlations cannot be published as zero. Partially classified comparisons retain exclusion counts. Workload findings distinguish region-day samples from completed-request counts and preserve noncausal, selection, temporal, and significance limitations. Tampered application result scope, status, and nested dataset identity fail closed.
+
+Tests validate the structured numerical boundary. They do not certify arbitrary prose, causal interpretations, statistical significance, or externally imported report authenticity. Those capabilities are not claimed.
 
 ## Minimum test package
 

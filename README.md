@@ -2,7 +2,7 @@
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning and execution implemented. Model integration and public demo are not yet available.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification implemented. Model integration and public demo are not yet available.**
 
 ## The problem
 
@@ -101,7 +101,21 @@ Plans can select only summarize, compare, decompose, and workload calls. The app
 
 The run reserves at most six top-level steps across at most two accepted rounds. Blocked and skipped steps still consume reserved slots. Dependencies use zero-based positions across the whole run; application-generated IDs appear in outcomes. Only a completed prerequisite allows its dependent step to execute. Independent steps can continue after another step fails.
 
-Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; narrative evidence verification and report publication remain to be built.
+Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Charts, report assembly, and model integration remain to be built.
+
+## Structured findings and evidence verification
+
+`build_evidence_catalog(run_report)` projects allowlisted scalar metrics from eligible results in an application-owned run. Each fact records the result and step IDs, dataset identity, metric/group, units, periods, selection rule, samples, denominators, classification exclusions, method, and warnings. It does not expose raw request records or accept arbitrary JSON paths.
+
+A `FindingDraft` specifies an evidence reference, claimed numeric value, and an optional bounded investigation topic. `verify_findings(run_report, {"findings": [...]})` checks each item and returns accepted findings plus sanitized quarantine codes. Unknown references, undefined values, mismatched numbers, duplicate findings, and unsupported topics are withheld. Valid findings survive alongside rejected items.
+
+Numerical observations are rendered by application code from the actual evidence value. Count claims must match exactly; floating-point claims use the calculation tolerances. Drafts cannot supply observation prose, IDs, scope overrides, or replacement limitations. Investigation topics produce explicitly labeled follow-up suggestions, not established explanations. Free-form model interpretation is not accepted in this version.
+
+`deterministic_findings(run_report)` provides up to 20 verified factual findings without inference. A completed FindingsReport means its proposed findings passed verification; it does not mean every analysis completed or that the whole agent is finished. Partial source results retain their status and caveats.
+
+Example: the 14 → 26 hour scenario can publish a +12 hour mean-change observation and a +12 hour arithmetic mix contribution. Claiming +20 hours is quarantined. An incomplete decomposition cannot supply an attribution claim, and an unavailable correlation cannot become zero.
+
+These evidence interfaces trust application-owned run objects. Typed fields and content IDs do not authenticate an uploaded or externally modified report. A future production import path would need provenance/authentication controls.
 
 ## License
 

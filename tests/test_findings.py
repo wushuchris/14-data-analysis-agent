@@ -145,7 +145,7 @@ def test_decomposition_known_answer_and_required_limitations():
     mix = fact(run, "mix_contribution_hours", operation="decompose")
     within = fact(run, "within_category_contribution_hours", operation="decompose")
     result = verify(run, draft(mix, topic="category_mix"), draft(within, topic="category_handling"))
-    assert [f.evidence.value for f in result.accepted] == [12, 0]
+    assert [f.evidence.value for f in result.accepted] == pytest.approx([12, 0], rel=1e-10, abs=1e-9)
     assert all("ARITHMETIC_ATTRIBUTION_NOT_CAUSATION" in f.limitations for f in result.accepted)
     assert all("MEAN_ONLY" in f.limitations for f in result.accepted)
     assert "not an established cause" in result.accepted[0].investigation
@@ -272,3 +272,22 @@ def test_schema_closed():
     schema = FindingDraft.model_json_schema()
     assert schema["additionalProperties"] is False
     assert schema["$defs"]["EvidenceReference"]["additionalProperties"] is False
+
+
+@pytest.mark.parametrize("metric,value", [("sample_size", 10), ("mean_hours", 14), ("median_hours", 10)])
+def test_summary_scalar_publication(metric, value):
+    run = run_analysis(source(), {"steps": [{"call": {"operation": "summarize",
+        "period": JAN.model_dump(mode="json")}}]})
+    evidence = fact(run, metric, operation="summarize")
+    assert evidence.value == value
+    finding = verify(run, draft(evidence)).accepted[0]
+    assert finding.evidence.periods == (JAN,)
+    assert finding.evidence.population_sizes == (10,)
+
+
+def test_category_contribution_retains_total_denominator():
+    run = report("drivers")
+    evidence = fact(run, "mix_contribution_hours", "Complex", "decompose")
+    assert evidence.grouping == "category"
+    assert evidence.sample_sizes == (2, 8) and evidence.population_sizes == (10, 10)
+    assert verify(run, draft(evidence, topic="category_mix")).status == "completed"

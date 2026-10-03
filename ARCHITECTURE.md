@@ -1,6 +1,6 @@
 # Architecture
 
-Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Bounded planning and execution are implemented. Interpretation, narrative verification, and reporting remain planned.
+Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Bounded planning and execution are implemented. Structured numerical findings and evidence verification are implemented. Free-form interpretation, charts, and report assembly remain planned.
 
 ## Stages and contracts
 
@@ -31,7 +31,7 @@ Initial budget: six reserved top-level analysis steps total across the initial p
 
 Each MetricResult contains a stable ID, value or result table, units, sample size, filters, exclusions, input identity, and calculation method/version.
 
-Numerical report statements are rendered from validated result references. FindingDraft separates computed observation, interpretation, and limitation/follow-up. Verification rejects unknown evidence IDs and claims inconsistent with the referenced result. Narrative grounding will still require evaluation and human review; references alone do not prove an interpretation.
+Numerical observations are rendered from validated result references. FindingDraft selects an evidence reference, numeric claim, and bounded investigation topic. Verification rejects unknown references and claims inconsistent with the referenced metric. Required limitations come from application evidence. Free-form interpretation remains outside the implemented publication boundary; references alone would not prove an interpretation.
 
 Charts use validated result tables. Their grouping, units, and population must match the report.
 
@@ -95,6 +95,20 @@ The six-slot budget includes blocked and skipped steps; tool_calls separately co
 Each step passes its data-quality gate before dispatch through a fixed application registry. Dependents of partial, blocked, failed, or skipped steps are skipped. Independent work continues. Returned result schemas, dataset identity, grouping, and periods are checked before outcomes expose results. Calculation disagreement and invalid output are failures; missing data blocks analysis. Raw exceptions never enter public events.
 
 Run IDs are unique; result IDs remain deterministic. The iterator yields real lifecycle events and a final RunReport. Abandoning the iterator stops subsequent work; there is no durable persistence or resume guarantee. Deterministic tool failures are not retried. Provider timeouts, model integration, and deterministic narrative fallback remain future work.
+
+## Implemented findings contract
+
+The evidence catalog projects only approved metrics from completed/partial step outcomes. It revalidates result type, dataset identity, requested periods/grouping, nested dataset provenance, and outcome status. It rejects ambiguous references. Each scalar carries a stable evidence ID and the originating result/step, scope, units, sample sizes, population denominators, classification exclusions, result status, method, and warnings.
+
+References identify a top-level result, metric enum, and group. There is no model-controlled path traversal or access to raw records. Null metrics remain in the catalog to support explicit UNDEFINED_METRIC rejection. Available values from partial results remain usable with all caveats; this does not upgrade the source result's completeness.
+
+Draft intake accepts one JSON object with a findings list, at most 20 items and 32 KiB. Duplicate JSON keys, nonfinite JSON, invalid envelopes, and over-budget batches reject the envelope. Individual malformed or unsupported items are quarantined by index and code without exposing their raw text. Valid items continue. Counts require exact equality; other metrics use relative 1e-10 and absolute 1e-9 agreement. Publication always uses the computed value, even if a claim differs within tolerance.
+
+Accepted observations use fixed application wording. Drafts cannot supply arbitrary observations, limitations, units, periods, or IDs. An investigation topic must match the metric and grouping: mix, within-category handling, regional process, or staffing/demand association. These are bounded investigation suggestions, not validated causal interpretations. Core noncausal, completed-cohort, and association limitations are attached by application policy in addition to result warnings.
+
+The deterministic fallback selects up to 20 defined catalog metrics and passes them through the same verifier. FindingsReport status describes verification, independently of RunReport and source result statuses. An empty result means there were no proposed/available findings; it does not imply stable business performance.
+
+The catalog consumes application-owned run objects. It cannot authenticate externally modified persisted records or prove a trusted tool was actually executed using a hash alone. Production report imports would require provenance and access controls. UI formatting, chart consistency, narrative evaluation, and full report publication are later milestones.
 
 ## Runtime and security
 
