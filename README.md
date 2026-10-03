@@ -2,7 +2,7 @@
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs and deterministic data-quality preparation implemented. Analytical tools, model integration, and public demo are not yet available.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries and period comparisons implemented. Case-mix decomposition, workload analysis, model integration, and public demo are not yet available.**
 
 ## The problem
 
@@ -47,7 +47,7 @@ A governed analytical work product: validated analytical operations produce repr
 
 ## Build and deployment
 
-GitHub is the source of truth. CI runs deterministic schema and quality tests on pushes to main and pull requests. Calculation tests and full analytical evaluations will follow with implementation. Deployment is not configured yet.
+GitHub is the source of truth. CI runs deterministic schema, quality, and calculation tests on pushes to main and pull requests. Full analytical evaluations will follow with remaining tools and model integration. Deployment is not configured yet.
 
 The planned Hugging Face deployment will depend on passing tests and evaluations and run only for pushes to main. Pull requests will never deploy. Deployment credentials belong in the GitHub secret `HF_DEPLOY_TOKEN`; inference credentials belong in the Space secret `HF_TOKEN`. No credentials are required for this scaffold.
 
@@ -61,6 +61,19 @@ python -m pytest -q
 ```
 
 `prepare_dataset()` returns a typed profile and prepared records. Call `require(scope)` before using records for an analysis. Missing classifications have explicit counts and filtered group views. Blocking request errors release no request records; blocking operations errors release no operations records. Source snapshots are retained separately from public profile output.
+
+## Available analytical tools
+
+- `summarize_resolution(dataset, period, grouping)`: count, mean, and median for completed requests, overall or by category/region.
+- `compare_periods(dataset, baseline, comparison, grouping)`: duration changes, percentage changes, and raw count differences.
+
+Both enforce quality gates and declared coverage. Pandas results must agree with controlled, parameterized in-memory SQL before publication. Medians are calculated independently in SQL using ranked observations.
+
+Results include stable IDs, normalized dataset identity, periods, population/inclusion counts, missing-classification exclusions, duplicate counts, calculation versions, and warnings. IDs are deterministic content identities, not authorization credentials.
+
+Empty populations have undefined duration metrics. Zero baseline duration makes percentage change undefined. Missing comparison groups produce partial results. Unequal period lengths warn that raw count changes are not rate changes.
+
+These tools describe completed requests and observed differences. They do not yet attribute changes to case mix or establish causes.
 
 ## License
 

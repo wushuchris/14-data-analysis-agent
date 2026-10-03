@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: schema and data-quality tests implemented. Calculation oracles, model behavior, and full analytical release scenarios remain planned.
+Status: schema, quality, and summary/comparison calculation tests implemented. Decomposition, workload, model behavior, and full analytical release scenarios remain planned.
 
 ## Known-answer scenarios
 
@@ -21,7 +21,13 @@ Status: schema and data-quality tests implemented. Calculation oracles, model be
 
 Baseline mean: 14 hours. Comparison mean: 26 hours. Change: +12 hours.
 Mix contribution: +12 hours. Within-category contribution: 0 hours.
-This independent oracle will test calculations before any model call.
+The independent overall and category summary/comparison oracle is implemented: 14 → 26 hours overall, unchanged category means. The decomposition oracle remains planned.
+
+## Implemented calculation coverage
+
+Hand-computed odd/even medians, repeated values, zero and fractional durations, skewed distributions, period filtering, UTC boundaries, category/region breakdowns, classification exclusions, empty periods, zero-baseline percentages, missing period groups, unequal windows, quality gate enforcement, injected grouping rejection, engine disagreement, stable result identity, JSON null handling, and duplicate/policy provenance.
+
+The SQL/Pandas agreement check is supported by independent arithmetic expectations; engine parity alone does not prove correctness.
 
 ## Minimum test package
 

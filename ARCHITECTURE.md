@@ -1,6 +1,6 @@
 # Architecture
 
-Status: proposed design; analytical behavior is not implemented yet.
+Status: intake and resolution summary/comparison tools implemented. Planning, decomposition, workload analysis, interpretation, verification, and reporting remain planned.
 
 ## Stages and contracts
 
@@ -34,6 +34,16 @@ Each MetricResult contains a stable ID, value or result table, units, sample siz
 Numerical report statements are rendered from validated result references. FindingDraft separates computed observation, interpretation, and limitation/follow-up. Verification rejects unknown evidence IDs and claims inconsistent with the referenced result. Narrative grounding will still require evaluation and human review; references alone do not prove an interpretation.
 
 Charts use validated result tables. Their grouping, units, and population must match the report.
+
+## Implemented summary and comparison controls
+
+Summary and comparison tools validate periods against declared resolution coverage and reject overlapping or reversed comparisons. Grouping identifiers come from an application-owned allowlist.
+
+Pandas and SQLite independently calculate group counts, means, and medians. SQL parameters carry period values; identifier interpolation uses only fixed approved expressions. The SQLite connection becomes query-only after population and is closed after calculation. Engine disagreement raises CalculationMismatch rather than releasing a result. Tolerances: relative 1e-10 and absolute 1e-9 hours.
+
+Result identities hash normalized prepared requests, operations, declared coverage, quality profile, and policy; result IDs also include period/grouping and method version. Raw source records are not included in result exports. Input row order does not affect identities when the quality profile is unchanged.
+
+Empty groups retain undefined statistics. Missing classification is disclosed in the selected period's denominator; observed small period groups use the preparation policy's threshold. Count comparisons remain raw counts, with unequal-window warnings.
 
 ## Mean-change decomposition
 
