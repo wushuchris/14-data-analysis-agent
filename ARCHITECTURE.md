@@ -1,6 +1,6 @@
 # Architecture
 
-Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Bounded planning and execution are implemented. Structured numerical findings and evidence verification are implemented. Report assembly and standalone SVG charts are implemented. Free-form interpretation, model integration, and the demo UI remain planned.
+Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Bounded planning and execution are implemented. Structured numerical findings and evidence verification are implemented. Report assembly and standalone SVG charts are implemented. A provider-neutral model boundary is implemented. Free-form interpretation, live provider transport, and the demo UI remain planned.
 
 ## Stages and contracts
 
@@ -94,7 +94,7 @@ The six-slot budget includes blocked and skipped steps; tool_calls separately co
 
 Each step passes its data-quality gate before dispatch through a fixed application registry. Dependents of partial, blocked, failed, or skipped steps are skipped. Independent work continues. Returned result schemas, dataset identity, grouping, and periods are checked before outcomes expose results. Calculation disagreement and invalid output are failures; missing data blocks analysis. Raw exceptions never enter public events.
 
-Run IDs are unique; result IDs remain deterministic. The iterator yields real lifecycle events and a final RunReport. Abandoning the iterator stops subsequent work; there is no durable persistence or resume guarantee. Deterministic tool failures are not retried. Provider timeouts, model integration, and deterministic narrative fallback remain future work.
+Run IDs are unique; result IDs remain deterministic. The iterator yields real lifecycle events and a final RunReport. Abandoning the iterator stops subsequent work; there is no durable persistence or resume guarantee. Deterministic tool failures are not retried. Provider timeout errors and deterministic fallback are handled by the adapter described below. A live transport remains future work.
 
 ## Implemented findings contract
 
@@ -123,6 +123,22 @@ Mean and mean-change bars include zero; signed changes retain their sign. Correl
 Report IDs hash the assembled payload including the run identity. Reassembly of the same run/proposals is stable; different executions have distinct report IDs. Chart IDs depend on result identity, chart kind, and rendering-contract version. These identifiers provide traceability, not authentication of external files.
 
 JSON exports contain aggregate evidence and sanitized run events, not original request records. There is no external report-import endpoint. The standard-library SVG renderer adds no plotting dependency. Interactive UI presentation and production deployment remain separate milestones.
+
+## Implemented model boundary
+
+AnalysisRequest selects one supported question plus explicit baseline, comparison, and optional opening period. Application periods and deterministic recipe are validated before a transport call. Model proposals remain constrained to those periods; initial plans must include the overall comparison. Required recipe operations establish question coverage, so a successful subset cannot silently become a complete answer.
+
+ModelTransport is an injected application protocol, not a model-selected tool. ModelRequest carries a purpose, unique request ID, fixed instructions, bounded JSON context, actual response schema, token limit, and timeout. ModelResponse requires an explicit finish reason. Refusal, truncation, provider error, invalid envelopes, excessive byte size, and timeout exceptions are rejected rather than scraping or accepting partial text.
+
+Four calls maximum are local to a session: initial, optional shared plan correction, optional follow-up, and findings. Call attempts consume budget before dispatch; byte-budget failures do not dispatch. There are no automatic provider retries. Execution still uses the existing engine, allowlist, quality gates, dependency rules, and six-slot limit.
+
+Model context includes selected scope, aggregate table counts, readiness, and capped EvidenceFact records. Follow-ups additionally receive sanitized prior call/status metadata and remaining steps. Original records, workload pairs, row-level quality locations, prompts, provider output, and exception text are excluded. Truncation is explicitly disclosed; byte overflow fails closed instead of silently dropping safety/schema fields.
+
+Initial operational failure selects deterministic mode without another provider call. Rejected/failed planning can select a deterministic recipe only when no tool was dispatched and no result was retained. Rejected attempts remain auditable. Once any tool work has occurred, partial execution is preserved and no deterministic replay happens. Findings failures preserve calculations; fully rejected/empty findings use the factual fallback and retain sanitized rejection metadata. Mixed valid/invalid findings keep their quarantine.
+
+AssistedAnalysis retains computation report, execution, optional rejected planning/finding attempts, model events, call count, explicit planning/finding sources, fallback codes, and requested-work coverage. Model events reflect transport activity but do not claim a generated result passed semantic validation; plan and finding checks remain independently visible.
+
+The adapter enforces call and byte budgets. The injected transport must enforce timeout and generation-token limits; this synchronous protocol cannot interrupt a transport that ignores those limits. No live provider, SDK, secret, endpoint, or inference cost is introduced at this milestone. Provider-specific schema support, refusal mapping, timeout behavior, billing, and production checks remain future integration work.
 
 ## Runtime and security
 

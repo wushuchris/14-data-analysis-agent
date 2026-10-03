@@ -2,7 +2,7 @@
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. Model integration and public demo are not yet available.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. A live provider transport and public demo are not yet available.**
 
 ## The problem
 
@@ -101,7 +101,7 @@ Plans can select only summarize, compare, decompose, and workload calls. The app
 
 The run reserves at most six top-level steps across at most two accepted rounds. Blocked and skipped steps still consume reserved slots. Dependencies use zero-based positions across the whole run; application-generated IDs appear in outcomes. Only a completed prerequisite allows its dependent step to execute. Independent steps can continue after another step fails.
 
-Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. Model integration and the public demo remain to be built.
+Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. The provider-neutral model boundary is available below; a live transport and the public demo remain to be built.
 
 ## Structured findings and evidence verification
 
@@ -128,6 +128,22 @@ These evidence interfaces trust application-owned run objects. Typed fields and 
 Bar scales include zero; negative changes extend left of zero. Correlations use a fixed -1 to +1 domain. Undefined values display as unavailable and receive no bar. Decomposition components and the observed total are separate bars, not stacked together. Chart specifications and renderers are application-owned.
 
 The chart renderer uses the Python standard library and existing schema dependency. No plotting framework or model call is needed. The interactive demo UI and deployment are later milestones.
+
+## Bounded model adapter
+
+`run_assisted_analysis(dataset, request, transport=None)` orchestrates planning, approved calculations, finding verification, and report assembly. With no transport it uses the deterministic plan and factual findings without inference. An injected application transport implements `complete(ModelRequest) -> ModelResponse`; no provider SDK, network endpoint, credentials, or billing is configured yet.
+
+The adapter sends the actual application JSON schemas, the selected question/periods, aggregate quality counts, readiness flags, and bounded scalar evidence. It sends no raw request records, workload pair tables, original snapshots, row-level issue locations, or prior model text. Findings and follow-ups disclose when the evidence list is truncated.
+
+A separate model-call budget allows at most four calls: initial planning, one possible correction, one possible follow-up, and findings. The execution engine still owns its six-step budget and single shared correction. Request scopes must match the selected periods. Initial planning requires the overall comparison; missing required question analyses keep the final report partial.
+
+Transport failures, refused/truncated responses, oversized output, and malformed proposals have explicit outcomes. Deterministic planning fallback runs only before tool dispatch or retained calculation results. Once work has run, it is preserved and tools are not replayed. Bad findings fall back to deterministic facts when none are valid; mixed valid/invalid findings retain quarantine.
+
+The returned AssistedAnalysis records planning/finding sources, model-call events, fallback codes, rejected attempts, and requested-work coverage. Public audit objects retain no prompts, provider response text, or exception diagnostics.
+
+Default request controls are 2,000 output tokens, a 20-second timeout, 32 KiB responses, 64 evidence facts, and 64 KiB combined input/schema/instructions. The adapter checks byte and call budgets itself; the transport must enforce token limits and network timeout. A synchronous transport that ignores timeout cannot be interrupted by this module.
+
+All model-adapter tests use simulated responses. Live provider compatibility, structured-output translation, cost, and actual timeout behavior must be checked when implementing the transport.
 
 ## License
 

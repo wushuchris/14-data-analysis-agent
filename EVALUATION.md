@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: schema, quality, summary/comparison, decomposition, workload, bounded execution, and structured finding verification, report, and chart tests implemented. Model behavior and full analytical release scenarios remain planned.
+Status: schema, quality, summary/comparison, decomposition, workload, bounded execution, and structured finding verification, report, and chart tests implemented. Simulated model-adapter behavior is tested. Live provider behavior and full analytical release scenarios remain planned.
 
 ## Known-answer scenarios
 
@@ -63,6 +63,14 @@ Report summaries link to verified findings; chart values and findings share cata
 Known-answer charts cover summary means, group changes, decomposition components, and correlations. Positive, negative, and zero changes use a zero-inclusive domain; correlation scales remain [-1, 1]. Undefined contributions and correlations have no bars. SVG tests verify XML structure, escaped text, accessible descriptions, and rejection of scope/unit/nonfinite tampering. A rendered negative-change decomposition was inspected for layout and signed-bar behavior.
 
 These are deterministic reports and standalone SVG charts. Interactive UI behavior and final deployed presentation still require live checks.
+
+## Implemented simulated model coverage
+
+Scripted transports cover successful planning/findings, no-transport deterministic mode, one correction shared across rounds, evidence-informed follow-up and global dependencies, period drift, missing overall comparison, missing required analyses, timeout/refusal/truncation/provider failure, invalid envelopes, duplicate JSON keys, oversized input/output, call budgets, disclosed evidence truncation, and session isolation.
+
+Tests confirm that rejected planning can fall back before tool dispatch, partial execution never replays, failed finding generation preserves calculations, mixed findings retain quarantine, and outbound context excludes source records and row-level quality locations. Audit exports exclude prompts, responses, and exception diagnostics. Schema/token/timeout settings are forwarded to transports.
+
+These tests consume no inference and establish application-boundary behavior. They do not prove provider structured-output compatibility, actual network cancellation, token-limit enforcement, or live-model analytical quality. A live transport must enforce and test those controls separately.
 
 ## Minimum test package
 
