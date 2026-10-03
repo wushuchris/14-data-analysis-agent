@@ -1,6 +1,6 @@
 # Architecture
 
-Status: intake and resolution summary/comparison tools implemented. Planning, decomposition, workload analysis, interpretation, verification, and reporting remain planned.
+Status: intake, resolution summary/comparison, and mean-change decomposition implemented. Planning, workload analysis, interpretation, verification, and reporting remain planned.
 
 ## Stages and contracts
 
@@ -55,7 +55,11 @@ Use the symmetric decomposition:
 
 The two contributions sum to the overall mean change, within numerical tolerance. The method splits the interaction symmetrically. Category-level attribution depends on this documented convention.
 
-Require observations for each included category in both periods and disclose population coverage. Otherwise return an incomplete decomposition rather than imputing a missing mean. This decomposition does not apply to medians.
+Require observations for each observed category in both periods and no unclassified requests in either period. Otherwise return an incomplete decomposition rather than imputing a missing mean or silently restricting the population. Incomplete results retain overall and available category comparisons but every attribution term is null.
+
+Category shares use the entire period's completed-request population as denominator. Complete results contain category counts, shares, means, per-category contributions, totals, and a reconciliation residual. Totals use compensated summation and must agree with the overall mean change within the summary calculation tolerances. A disagreement raises CalculationMismatch before returning a result. Result validation also requires complete evidence and category contributions that sum to the totals.
+
+The stable result identity includes the method version and referenced comparison IDs. Warnings preserve tiny groups, unequal period lengths, and completed-request limitations. Every result states that it is arithmetic attribution rather than causation, and that it applies to means rather than medians.
 
 ## Failure outcomes
 

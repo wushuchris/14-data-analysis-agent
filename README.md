@@ -2,7 +2,7 @@
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries and period comparisons implemented. Case-mix decomposition, workload analysis, model integration, and public demo are not yet available.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, and reconciled case-mix decomposition implemented. Workload analysis, model integration, and public demo are not yet available.**
 
 ## The problem
 
@@ -66,6 +66,7 @@ python -m pytest -q
 
 - `summarize_resolution(dataset, period, grouping)`: count, mean, and median for completed requests, overall or by category/region.
 - `compare_periods(dataset, baseline, comparison, grouping)`: duration changes, percentage changes, and raw count differences.
+- `decompose_case_mix(dataset, baseline, comparison)`: symmetric attribution of the mean change to category proportions and within-category mean changes.
 
 Both enforce quality gates and declared coverage. Pandas results must agree with controlled, parameterized in-memory SQL before publication. Medians are calculated independently in SQL using ranked observations.
 
@@ -73,7 +74,11 @@ Results include stable IDs, normalized dataset identity, periods, population/inc
 
 Empty populations have undefined duration metrics. Zero baseline duration makes percentage change undefined. Missing comparison groups produce partial results. Unequal period lengths warn that raw count changes are not rate changes.
 
-These tools describe completed requests and observed differences. They do not yet attribute changes to case mix or establish causes.
+The decomposition checks that mix and within-category contributions sum to the observed overall mean change. It requires all requests to be classified and each observed category to have support in both periods. Missing support or classifications produce an incomplete result with no attribution terms; the overall comparison remains available.
+
+Example: the known 14 → 26 hour scenario yields +12 hours from mix and 0 from within-category changes. A combined scenario yields +17.2 hours overall: +13.2 from mix and +4 from within-category changes.
+
+These are arithmetic contributions to observed differences, not causal estimates. The method applies to means, not medians.
 
 ## License
 

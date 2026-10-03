@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: schema, quality, and summary/comparison calculation tests implemented. Decomposition, workload, model behavior, and full analytical release scenarios remain planned.
+Status: schema, quality, summary/comparison, and decomposition tests implemented. Workload, model behavior, and full analytical release scenarios remain planned.
 
 ## Known-answer scenarios
 
@@ -21,7 +21,14 @@ Status: schema, quality, and summary/comparison calculation tests implemented. D
 
 Baseline mean: 14 hours. Comparison mean: 26 hours. Change: +12 hours.
 Mix contribution: +12 hours. Within-category contribution: 0 hours.
-The independent overall and category summary/comparison oracle is implemented: 14 → 26 hours overall, unchanged category means. The decomposition oracle remains planned.
+The summary/comparison and decomposition oracles are implemented: 14 → 26 hours overall, +12 mix contribution, and 0 within-category contribution.
+
+Additional hand-calculated cases:
+- Fixed 80% Routine / 20% Complex mix, Routine 10 → 14 hours: +3.2 overall, 0 mix, +3.2 within-category.
+- Mix changes from 80% Routine / 20% Complex to 20% Routine / 80% Complex while category means change 10 → 12 and 30 → 36: +17.2 overall, +13.2 mix, +4 within-category.
+- Three-category case: +9.4 overall, +8.7 mix, +0.7 within-category.
+
+Also cover improvements, unchanged means, one category, zero durations, scaled oracles, absent categories, missing classifications, empty periods, incomplete-output publication controls, tampered totals, identity, and JSON export.
 
 ## Implemented calculation coverage
 
