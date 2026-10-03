@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: planned; no analytical tests or evaluation scenarios have passed yet.
+Status: schema and data-quality tests implemented. Calculation oracles, model behavior, and full analytical release scenarios remain planned.
 
 ## Known-answer scenarios
 

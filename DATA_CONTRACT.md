@@ -1,6 +1,6 @@
-# Proposed data contract
+# Data contract
 
-Status: design; schemas and validation follow in the next implementation milestone.
+Status: typed schemas and dataset preparation implemented; file parsing and analytical tools follow.
 
 All fixtures and demonstration records are synthetic.
 
@@ -9,8 +9,8 @@ All fixtures and demonstration records are synthetic.
 | Field | Meaning |
 |---|---|
 | request_id | Unique nonempty synthetic request identifier |
-| opened_at | UTC timestamp |
-| resolved_at | UTC timestamp, not earlier than opened_at |
+| opened_at | Timezone-aware ISO timestamp, normalized to UTC |
+| resolved_at | Timezone-aware ISO timestamp, normalized to UTC, not earlier than opened_at |
 | category | Routine, Standard, or Complex |
 | region | North, Central, or South |
 
@@ -25,7 +25,7 @@ Report periods use resolution month. Requests opened before the reporting window
 | date | UTC calendar date |
 | region | North, Central, or South |
 | incoming_requests | Nonnegative integer |
-| staffed_hours | Nonnegative finite numeric value |
+| staffed_hours | Nonnegative finite numeric value or missing |
 
 The unique key is (date, region). Missing daily rows stay missing. Missing or zero staffed hours make requests-per-staffed-hour undefined; do not replace the result with zero.
 
@@ -38,7 +38,12 @@ Opening date and region join request observations to workload records. This is a
 - Invalid timestamps or negative durations block affected calculations.
 - Missing classifications are reported; grouped findings disclose exclusions and coverage.
 - Missing workload records withhold affected workload calculations.
-- Tiny groups receive a warning; the exact threshold will be explicit configuration.
+- Tiny observed category/region groups receive a warning. Default threshold: 5; configurable with QualityPolicy.
+- Invalid or conflicting request rows conservatively block all request analysis; invalid or conflicting operations rows block workload analysis. Blocked tables release no prepared records.
+- Missing classifications permit overall summaries, with filtered group views and explicit missing counts. If every classification is missing, that grouping is blocked.
+- Operations coverage must include each declared date/region. Missing rows, missing/zero staffing, or missing opening-date links block workload analysis.
+- Row limits default to 10,000 per table, and declared operations coverage is limited to one year.
+- Boolean counts, numeric strings, nonfinite staffing, unknown enums, naive timestamps, and extra fields are rejected. Dates and aware timestamps are explicitly parsed; classifications are not guessed.
 - Original records are preserved. Transformations and inclusion/exclusion counts accompany results.
 
 Bundled demo periods will be January through March 2026. Inputs must declare their coverage; lack of observations alone does not prove complete collection or zero workload.

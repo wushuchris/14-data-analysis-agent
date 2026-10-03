@@ -1,7 +1,9 @@
 # Automated tests
 
-Analytical tests will be added alongside schemas, data validation, and calculations.
-There are no analytical tests yet. The current CI validates only package setup.
+Run `python -m pytest -q` after installing requirements-dev.txt.
 
-Use independent known-answer fixtures and the oracle in EVALUATION.md.
-Deterministic tests must not require credentials, inference providers, or network calls.
+- test_schemas.py validates types, timestamps, numeric constraints, coverage, and immutable inputs.
+- test_quality.py checks duplicates, readiness gates, missing data, row counts, source preservation, and safe issue output.
+
+Calculation oracles and model/publication tests will follow with their implementation.
+No credentials or live model services are required.
