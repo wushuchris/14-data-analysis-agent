@@ -1,0 +1,51 @@
+# Evaluation plan
+
+Status: planned; no analytical tests or evaluation scenarios have passed yet.
+
+## Known-answer scenarios
+
+1. Stable operation: no material change under a specified threshold.
+2. Case-mix change: overall mean changes with unchanged category means.
+3. Within-category slowdown: fixed mix, one category becomes slower.
+4. Combined change: mix and within-category contributions reconcile to the mean change.
+5. Workload association: report relationship without claiming causation.
+6. Regional concentration: report contribution and sample sizes.
+7. Quality and sparse-data scenarios: duplicates, invalid dates, missing classifications, missing staffing, tiny groups.
+
+## Hand-calculated case-mix oracle
+
+| Category | Hours per request | Baseline count | Comparison count |
+|---|---:|---:|---:|
+| Routine | 10 | 8 | 2 |
+| Complex | 30 | 2 | 8 |
+
+Baseline mean: 14 hours. Comparison mean: 26 hours. Change: +12 hours.
+Mix contribution: +12 hours. Within-category contribution: 0 hours.
+This independent oracle will test calculations before any model call.
+
+## Minimum test package
+
+- 10 success cases.
+- 5 edge cases.
+- 5 failure cases.
+- 3 adversarial cases.
+- Additional regression cases from meaningful live failures.
+
+Cover arithmetic correctness, equivalent SQL/Pandas results, invalid plans, unknown evidence IDs, model errors, execution budgets, session isolation, and deterministic fallback. Adversarial cells must not alter instructions, execute code, or bypass publication controls.
+
+## Release gates
+
+- Calculations match independent expected answers within explicit tolerances.
+- Mean decomposition reconciles; unsupported categories yield an incomplete result.
+- Published numerical observations reference valid computed results.
+- Quality failures block affected conclusions.
+- Charts and findings agree on values, units, population, and periods.
+- Claims respect completed-request and association limitations.
+- No model service is needed for deterministic tests.
+- Analytical tests and evaluations pass in CI before deployment.
+- Final deployed default, alternate, and claimed live-model modes pass production checks.
+- Public source and history contain only publishable content; runtime artifacts are untracked.
+
+## Human review rubric
+
+Assess correctness, evidence traceability, appropriate uncertainty, business usefulness, and clear separation of observations from explanations. Reject unsupported causal conclusions or a misleading claim that this measures unresolved backlog.
