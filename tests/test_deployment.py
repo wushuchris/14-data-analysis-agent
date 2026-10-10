@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from scripts.deploy_space import (
-    MANIFEST, SOURCE_FILES, SPACE_ID, DeploymentFailure, build_bundle, deploy_bundle, main, validate_bundle,
+    MANIFEST, SOURCE_FILES, SPACE_ID, DeploymentFailure, build_bundle, deploy_bundle, main, validate_bundle, validate_space_metadata,
 )
 
 
@@ -169,3 +169,36 @@ def test_provider_failures_publish_only_safe_stage_and_http_code(bundle, monkeyp
     assert str(caught.value) == stage + suffix
     assert caught.value.__suppress_context__
     assert api.uploads == []
+
+
+@pytest.mark.parametrize("length,valid", [(1, True), (60, True), (61, False), (0, False)])
+def test_space_description_length_boundary(length, valid):
+    readme = "---\nshort_description: " + "x" * length + "\n---\n# Demo\n"
+    if valid:
+        validate_space_metadata(readme)
+    else:
+        with pytest.raises(ValueError):
+            validate_space_metadata(readme)
+
+
+def test_overlong_space_description_blocks_bundle_before_output(tmp_path):
+    source = tmp_path / "source"
+    build_bundle(ROOT, source, SHA)
+    text = (source / "README.md").read_text()
+    import re
+    text = re.sub(r"(?m)^short_description: .*", "short_description: " + "x" * 61, text)
+    (source / "README.md").write_text(text)
+    output = tmp_path / "output"
+    with pytest.raises(ValueError, match="short_description"):
+        build_bundle(source, output, SHA)
+    assert not output.exists()
+
+
+def test_remote_metadata_error_does_not_echo_provider_details(bundle, monkeypatch):
+    api = FakeHub()
+    def fail(**kwargs):
+        raise ValueError("Invalid metadata in README.md.\nsynthetic sensitive sentinel")
+    monkeypatch.setattr(api, "upload_folder", fail)
+    with pytest.raises(DeploymentFailure, match="UPLOAD_FAILED_README_METADATA_INVALID") as caught:
+        deploy_bundle(api, bundle, SHA)
+    assert str(caught.value) == "UPLOAD_FAILED_README_METADATA_INVALID"

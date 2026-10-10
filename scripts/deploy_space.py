@@ -49,10 +49,22 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def validate_space_metadata(readme: str) -> None:
+    # The app owns a flat, literal metadata block. Reject an overlong description
+    # before contacting the Hub rather than depending only on remote validation.
+    if not readme.startswith("---\n") or "\n---\n" not in readme[4:]:
+        raise ValueError("Missing Space metadata")
+    metadata = readme[4:].split("\n---\n", 1)[0]
+    description = re.search(r"(?m)^short_description: ([^\n]+)$", metadata)
+    if description is None or not 1 <= len(description.group(1).strip()) <= 60:
+        raise ValueError("Space short_description must contain 1 to 60 characters")
+
+
 def build_bundle(root: Path, output: Path, source_sha: str) -> None:
     validate_sha(source_sha)
     # Validate all sources before writing anything. Output must be a new directory.
     sources = {name: checked_file(root, name) for name in SOURCE_FILES}
+    validate_space_metadata(sources["README.md"].read_text())
     output.mkdir(parents=True, exist_ok=False)
     for name, source in sources.items():
         destination = output / name
@@ -90,6 +102,8 @@ def hub_call(stage: str, operation, **kwargs):
     try:
         return operation(**kwargs)
     except Exception as error:
+        if isinstance(error, ValueError) and str(error).startswith("Invalid metadata in README.md."):
+            raise DeploymentFailure(stage + "_README_METADATA_INVALID") from None
         status = getattr(getattr(error, "response", None), "status_code", None)
         kinds = {"ValueError", "TypeError", "RuntimeError", "OSError", "FileNotFoundError",
                  "PermissionError", "ConnectError", "ConnectTimeout", "ReadTimeout",

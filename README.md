@@ -6,7 +6,7 @@ colorTo: purple
 sdk: docker
 app_port: 7860
 license: mit
-short_description: Synthetic service trends with verified evidence and quality checks
+short_description: Verified analysis of synthetic service operations
 ---
 
 # Service Operations Data Analysis Agent
