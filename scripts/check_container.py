@@ -1,7 +1,7 @@
 """Check the running CI container without contacting an external service."""
 
+from http.client import HTTPException
 import time
-from urllib.error import URLError
 from urllib.request import urlopen
 
 
@@ -12,7 +12,7 @@ def main():
                 if response.status == 200 and response.read().strip() == b"ok":
                     print("Container health endpoint passed.")
                     return
-        except (URLError, TimeoutError):
+        except (OSError, HTTPException):
             pass
         time.sleep(1)
     raise SystemExit("Container startup check failed.")
