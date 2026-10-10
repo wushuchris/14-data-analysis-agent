@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from scripts.deploy_space import (
-    MANIFEST, SOURCE_FILES, SPACE_ID, build_bundle, deploy_bundle, main, validate_bundle,
+    MANIFEST, SOURCE_FILES, SPACE_ID, DeploymentFailure, build_bundle, deploy_bundle, main, validate_bundle,
 )
 
 
@@ -147,3 +147,25 @@ def test_missing_token_has_no_network_or_provider_dependency(monkeypatch):
 def test_existing_output_not_overwritten(bundle):
     with pytest.raises(FileExistsError):
         build_bundle(ROOT, bundle, SHA)
+
+
+@pytest.mark.parametrize("operation,stage", [
+    ("space_info", "SPACE_LOOKUP_FAILED"),
+    ("get_space_runtime", "HARDWARE_LOOKUP_FAILED"),
+    ("upload_folder", "UPLOAD_FAILED"),
+])
+@pytest.mark.parametrize("status,suffix", [(403, "_HTTP_403"), (404, "_HTTP_404"), (None, ""), ("private text", "")])
+def test_provider_failures_publish_only_safe_stage_and_http_code(bundle, monkeypatch, operation, stage, status, suffix):
+    api = FakeHub()
+
+    def fail(**kwargs):
+        error = RuntimeError("synthetic credential sentinel must remain private")
+        error.response = SimpleNamespace(status_code=status)
+        raise error
+
+    monkeypatch.setattr(api, operation, fail)
+    with pytest.raises(DeploymentFailure) as caught:
+        deploy_bundle(api, bundle, SHA)
+    assert str(caught.value) == stage + suffix
+    assert caught.value.__suppress_context__
+    assert api.uploads == []
