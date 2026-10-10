@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: schema, quality, summary/comparison, decomposition, workload, bounded execution, and structured finding verification, report, and chart tests implemented. Simulated model-adapter behavior is tested. Synthetic scenario and deterministic UI tests are implemented. Live provider behavior and deployed production checks remain planned.
+Status: schema, quality, summary/comparison, decomposition, workload, bounded execution, and structured finding verification, report, and chart tests implemented. Simulated model-adapter behavior is tested. Synthetic scenarios, opt-in AI controls, finite shared allowance, and simulated UI tests are implemented. Deployed deterministic behavior and live authentication-failure fallback have been checked; successful live model output remains blocked by runtime authentication.
 
 ## Known-answer scenarios
 
@@ -62,7 +62,7 @@ Report summaries link to verified findings; chart values and findings share cata
 
 Known-answer charts cover summary means, group changes, decomposition components, and correlations. Positive, negative, and zero changes use a zero-inclusive domain; correlation scales remain [-1, 1]. Undefined contributions and correlations have no bars. SVG tests verify XML structure, escaped text, accessible descriptions, and rejection of scope/unit/nonfinite tampering. A rendered negative-change decomposition was inspected for layout and signed-bar behavior.
 
-These are deterministic reports and standalone SVG charts. Interactive UI behavior and final deployed presentation still require live checks.
+These are deterministic reports and standalone SVG charts. The default deployed presentation has been checked; final release still requires the alternate and successful live-model checks claimed by the demo.
 
 ## Implemented simulated model coverage
 
@@ -78,7 +78,7 @@ Independent January → February expectations: stable 0 hours; mix-only +12 (12 
 
 Scenario tests cover all ten default driver outcomes, full operations coverage, all-region/category representation, missing classification withholding attribution, missing staffing blocking workload, exact-duplicate auditing, invalid source withholding records, reproducibility, and snapshot isolation.
 
-Streamlit AppTest covers the default 16 → 32 hour result, scenario replacement, category/region question, alternate periods, workload semantics, partial-data notices, invalid-record metric withholding, no tool replay on rerender, and absence of upload/credential/live-model controls. These are simulated UI checks, not a claim that the public deployment has been tested.
+Streamlit AppTest covers the default 16 → 32 hour result, scenario replacement, category/region question, alternate periods, workload semantics, partial-data notices, invalid-record metric withholding, no tool replay on rerender, and absence of upload/credential-entry controls. Additional tests cover explicit AI submission, no inference on rerender or checkbox-only changes, exhausted allowance, missing credentials, wrong finding quarantine, and retained metrics after authentication failure. Controller tests cover concurrent reservations and a shared finite call allowance.
 
 ## Minimum test package
 
@@ -106,3 +106,9 @@ Cover arithmetic correctness, equivalent SQL/Pandas results, invalid plans, unkn
 ## Human review rubric
 
 Assess correctness, evidence traceability, appropriate uncertainty, business usefulness, and clear separation of observations from explanations. Reject unsupported causal conclusions or a misleading claim that this measures unresolved backlog.
+
+## Live runtime authentication regression — October 10, 2026
+
+The deployed default remained deterministic with zero model calls and the known +16 hour change. An explicit AI submission attempted one model call and received the sanitized `HF_AUTH_FAILED` code (HTTP 401/403 classification). There was no automatic retry. Approved calculations still ran deterministically: three tool calls, baseline 16 hours, comparison 32 hours, and +16 hours overall.
+
+A regression test now exercises that failure through the Streamlit UI, checks a specific authentication message and safe audit code, and verifies that the known-answer metrics survive. Transport and orchestration tests already cover authentication failures without exposing provider diagnostics. Successful live planning/findings and structured-output compatibility remain unverified until runtime credentials are accepted. Deployment authentication and inference authentication are separate checks.

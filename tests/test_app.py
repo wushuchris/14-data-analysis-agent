@@ -170,3 +170,23 @@ def test_ai_exhaustion_remains_usable(monkeypatch):
     assert any("allowance is exhausted" in w.value for w in at.warning)
     assert at.session_state["_demo_result"].model_calls == 0
     assert at.metric[2].value == "+16.00 hours"
+
+
+def test_live_auth_failure_regression_keeps_report_and_safe_code(monkeypatch):
+    import service_analysis.demo_inference as demo
+    from service_analysis.model_adapter import AdapterError
+    from test_demo_inference import SyntheticModel
+    fake = SyntheticModel(failure=AdapterError("HF_AUTH_FAILED"))
+    monkeypatch.setattr(demo, "CONTROLLER", demo.DemoAIController(factory=lambda: fake))
+    at = app()
+    at.checkbox(key="use_ai").check()
+    submit(at)
+    assert not at.exception
+    assert any("rejected the runtime inference credential" in w.value for w in at.warning)
+    result = at.session_state["_demo_result"]
+    assert result.model_calls == 1 and len(fake.requests) == 1
+    assert result.execution.tool_calls == 3
+    assert result.planning_source == result.findings_source == "deterministic"
+    assert result.fallback_codes == ("HF_AUTH_FAILED",)
+    assert [m.value for m in at.metric] == ["16.00 hours", "32.00 hours", "+16.00 hours"]
+    assert any("AI fallback codes: HF_AUTH_FAILED" in m.value for m in at.markdown)

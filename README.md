@@ -13,7 +13,7 @@ short_description: Verified analysis of synthetic service operations
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. The Streamlit demo is deployed on Hugging Face through test-gated GitHub Actions. A fixed Hugging Face router transport is implemented with simulated HTTP tests; explicit AI mode and a finite shared allowance are implemented; live provider evaluation is pending.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. The Streamlit demo is deployed on Hugging Face through test-gated GitHub Actions. A fixed Hugging Face router transport is implemented with simulated HTTP tests; explicit AI mode and a finite shared allowance are implemented; the first live call was rejected by runtime authentication, with verified deterministic fallback. Successful live provider evaluation is pending.**
 
 [Explore the live synthetic demo](https://huggingface.co/spaces/FlyingNunchucks/14-data-analysis-agent).
 
@@ -214,3 +214,7 @@ A process-wide, thread-safe controller permits four AI run reservations across a
 This allowance resets on application restart/redeploy and does not coordinate multiple replicas. It is a finite demonstration safeguard, not a durable monthly account spending cap. A production upgrade should use a persistent shared quota, authentication, request rate limits, and provider/account billing controls. Included credits and provider charges remain account-owned settings. The app does not create paid resources or alter those settings.
 
 Provider references: [HF Groq routing](https://huggingface.co/docs/inference-providers/en/providers/groq), [Groq structured output](https://console.groq.com/docs/structured-outputs), and [HF credits and billing](https://huggingface.co/docs/inference-providers/pricing). Model availability and prices can change.
+
+### Runtime authentication check
+
+The October 10, 2026 live AI submission returned `HF_AUTH_FAILED` after one model call attempt. The known-answer report remained available through deterministic fallback, with three approved tool calls and a +16 hour change. A Streamlit regression test covers that visible failure. Successful live planning/findings are not yet claimed. The runtime token must be accepted independently of the working deployment token.

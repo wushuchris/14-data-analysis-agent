@@ -82,7 +82,15 @@ def main():
         if st.session_state["_demo_ai_notice"]:
             st.warning(AI_NOTICE_TEXT[st.session_state["_demo_ai_notice"]])
         elif result.fallback_codes:
-            st.warning("Some AI proposals could not be used. The report shows verified results and available deterministic findings.")
+            messages = {
+                "HF_AUTH_FAILED": "Hugging Face rejected the runtime inference credential. This report uses deterministic analysis.",
+                "HF_CREDITS_UNAVAILABLE": "Inference credits are unavailable. This report retains verified results and deterministic findings.",
+                "HF_RATE_LIMITED": "The inference service limited this request. This report retains verified results and deterministic findings.",
+                "MODEL_TIMEOUT": "The AI request timed out. This report retains verified results and deterministic findings.",
+            }
+            message = next((messages[code] for code in result.fallback_codes if code in messages),
+                "Some AI proposals could not be used. The report shows verified results and available deterministic findings.")
+            st.warning(message)
     else:
         st.caption("Deterministic mode · no live model calls.")
     if report.status == "complete":
