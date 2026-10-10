@@ -154,7 +154,7 @@ def test_existing_output_not_overwritten(bundle):
     ("get_space_runtime", "HARDWARE_LOOKUP_FAILED"),
     ("upload_folder", "UPLOAD_FAILED"),
 ])
-@pytest.mark.parametrize("status,suffix", [(403, "_HTTP_403"), (404, "_HTTP_404"), (None, ""), ("private text", "")])
+@pytest.mark.parametrize("status,suffix", [(403, "_HTTP_403"), (404, "_HTTP_404"), (None, "_RUNTIMEERROR"), ("private text", "_RUNTIMEERROR")])
 def test_provider_failures_publish_only_safe_stage_and_http_code(bundle, monkeypatch, operation, stage, status, suffix):
     api = FakeHub()
 

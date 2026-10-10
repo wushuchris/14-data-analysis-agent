@@ -91,7 +91,12 @@ def hub_call(stage: str, operation, **kwargs):
         return operation(**kwargs)
     except Exception as error:
         status = getattr(getattr(error, "response", None), "status_code", None)
-        suffix = f"_HTTP_{status}" if type(status) is int and 100 <= status <= 599 else ""
+        kinds = {"ValueError", "TypeError", "RuntimeError", "OSError", "FileNotFoundError",
+                 "PermissionError", "ConnectError", "ConnectTimeout", "ReadTimeout",
+                 "RemoteProtocolError", "HfHubHTTPError", "BadRequestError"}
+        kind = type(error).__name__
+        safe_kind = kind if kind in kinds else "UNCLASSIFIED"
+        suffix = f"_HTTP_{status}" if type(status) is int and 100 <= status <= 599 else "_" + safe_kind.upper()
         raise DeploymentFailure(stage + suffix) from None
 
 
