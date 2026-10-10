@@ -13,7 +13,7 @@ short_description: Verified analysis of synthetic service operations
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. The deterministic Streamlit demo is deployed on Hugging Face through test-gated GitHub Actions. A fixed Hugging Face router transport is implemented with simulated HTTP tests; live UI activation and provider evaluation are pending.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. The Streamlit demo is deployed on Hugging Face through test-gated GitHub Actions. A fixed Hugging Face router transport is implemented with simulated HTTP tests; explicit AI mode and a finite shared allowance are implemented; live provider evaluation is pending.**
 
 [Explore the live synthetic demo](https://huggingface.co/spaces/FlyingNunchucks/14-data-analysis-agent).
 
@@ -75,7 +75,7 @@ Only explicitly listed application files, README, license, Docker configuration,
 
 Deployment remains disabled until that variable is set. Setting the variable alone does not start a workflow. There is no manual bypass around testing.
 
-The deterministic demo requires no runtime inference token and makes no model calls. If a live transport is added later, its runtime credential belongs in the Space secret `HF_TOKEN`, separate from GitHub's deployment token.
+Deterministic mode requires no runtime inference token and makes no model calls. Optional AI mode reads the Space secret `HF_TOKEN`, separate from GitHub's deployment token. Save it directly in Hugging Face settings with permission to use Inference Providers; never put the value in chat or source.
 
 The first successful deployment passed 396 tests and container checks in GitHub, synced the tested commit, completed the Hugging Face build, and passed the default live browser smoke check. For future releases, successful sync means files reached Hugging Face; check the Space build and live production behavior separately. Docker startup checks complement the Streamlit AppTest suite and do not replace that production check.
 
@@ -131,7 +131,7 @@ Plans can select only summarize, compare, decompose, and workload calls. The app
 
 The run reserves at most six top-level steps across at most two accepted rounds. Blocked and skipped steps still consume reserved slots. Dependencies use zero-based positions across the whole run; application-generated IDs appear in outcomes. Only a completed prerequisite allows its dependent step to execute. Independent steps can continue after another step fails.
 
-Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. The provider-neutral model boundary and deterministic demo are available below; live UI activation and provider evaluation remain pending.
+Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. The provider-neutral model boundary and deterministic demo are available below; live provider evaluation remains pending.
 
 ## Structured findings and evidence verification
 
@@ -161,7 +161,7 @@ The chart renderer uses the Python standard library and existing schema dependen
 
 ## Bounded model adapter
 
-`run_assisted_analysis(dataset, request, transport=None)` orchestrates planning, approved calculations, finding verification, and report assembly. With no transport it uses the deterministic plan and factual findings without inference. An injected application transport implements `complete(ModelRequest) -> ModelResponse`; the optional HF transport below supplies the network boundary. The default UI still uses no transport.
+`run_assisted_analysis(dataset, request, transport=None)` orchestrates planning, approved calculations, finding verification, and report assembly. With no transport it uses the deterministic plan and factual findings without inference. An injected application transport implements `complete(ModelRequest) -> ModelResponse`; the optional HF transport below supplies the network boundary. The default UI uses no transport; explicit AI submissions use the fixed HF transport.
 
 The adapter sends the actual application JSON schemas, the selected question/periods, aggregate quality counts, readiness flags, and bounded scalar evidence. It sends no raw request records, workload pair tables, original snapshots, row-level issue locations, or prior model text. Findings and follow-ups disclose when the evidence list is truncated.
 
@@ -173,7 +173,7 @@ The returned AssistedAnalysis records planning/finding sources, model-call event
 
 Default request controls are 2,000 output tokens, a 20-second timeout, 32 KiB responses, 64 evidence facts, and 64 KiB combined input/schema/instructions. The adapter checks byte and call budgets itself; the transport must enforce token limits and network timeout. A synchronous transport that ignores timeout cannot be interrupted by this module.
 
-All model-adapter and transport tests use simulated responses. Actual provider compatibility and production behavior remain to be evaluated before exposing AI mode.
+All model-adapter, transport, AI controller, and UI tests use simulated responses. Actual provider compatibility and production behavior require separate bounded live checks.
 
 ## Explore the synthetic demo
 
@@ -207,6 +207,10 @@ The provider schema removes annotations/defaults, requires every object field, c
 
 The transport forwards output-token and socket-timeout controls, caps the HTTP response at 96 KiB and content at 32 KiB, rejects redirects, and performs no automatic retries. HTTP authentication, missing credits, rate limits, network failures, malformed output, and refusals return sanitized codes. Provider response bodies, prompts, and credentials are never added to audit objects. A socket timeout is per blocking operation, not a hard total deadline; DNS and slow response delivery require a worker-level deadline in a production upgrade.
 
-The public UI remains deterministic in this milestone, so adding the Space secret alone makes no inference calls. Live activation will require explicit controls and bounded production checks. A per-run call limit does not enforce a monthly account spending cap; public access controls must be decided before unrestricted AI use.
+The public UI defaults to deterministic analysis. Selecting **Use AI to propose the analysis** and submitting **Run analysis** enables AI for that run. Initial page loads, checkbox changes, tab changes, downloads, and rerenders make no inference calls. A submitted result records its actual planning/finding sources, model-call count, sanitized events, and fallback codes.
+
+A process-wide, thread-safe controller permits four AI run reservations across all browser sessions. Each reservation budgets up to three model calls (initial plan, one possible correction, and findings), 2,000 output tokens per call, and a 20-second socket timeout. Model follow-up is disabled in this public mode; the core execution engine still retains its approved-tool limits. Reservations include unused calls, are not refunded on failure, and never replenish through a timer or session reset. Exhaustion keeps deterministic analysis available. Missing runtime credentials consume neither a reservation nor a model call.
+
+This allowance resets on application restart/redeploy and does not coordinate multiple replicas. It is a finite demonstration safeguard, not a durable monthly account spending cap. A production upgrade should use a persistent shared quota, authentication, request rate limits, and provider/account billing controls. Included credits and provider charges remain account-owned settings. The app does not create paid resources or alter those settings.
 
 Provider references: [HF Groq routing](https://huggingface.co/docs/inference-providers/en/providers/groq), [Groq structured output](https://console.groq.com/docs/structured-outputs), and [HF credits and billing](https://huggingface.co/docs/inference-providers/pricing). Model availability and prices can change.

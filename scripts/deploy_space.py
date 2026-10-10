@@ -19,6 +19,7 @@ SOURCE_FILES = (
     "src/service_analysis/charts.py",
     "src/service_analysis/decomposition.py",
     "src/service_analysis/demo_data.py",
+    "src/service_analysis/demo_inference.py",
     "src/service_analysis/execution.py",
     "src/service_analysis/findings.py",
     "src/service_analysis/model_adapter.py",

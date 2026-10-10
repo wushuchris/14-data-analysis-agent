@@ -1,4 +1,4 @@
-"""Deterministic public demo; every record comes from the bundled generator."""
+"""Public synthetic demo; AI requires explicit submission and a shared allowance."""
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 import streamlit as st
 from service_analysis.analysis import Period, ComparisonResult
 from service_analysis.demo_data import SCENARIOS, MONTHS, load_scenario
-from service_analysis.model_adapter import AnalysisRequest, run_assisted_analysis
+from service_analysis.demo_inference import COMPARISONS, NOTICE_TEXT as AI_NOTICE_TEXT, run_demo_analysis
 from service_analysis.reporting import export_report_json, _summary
 from service_analysis.charts import render_chart_svg, WARNING_TEXT
 
@@ -14,11 +14,6 @@ QUESTIONS = {
     "drivers": "What could explain the change?",
     "segments": "Which categories and regions changed?",
     "resolution_change": "How did resolution time change?",
-}
-COMPARISONS = {
-    "January → February": ("January", "February"),
-    "January → March": ("January", "March"),
-    "February → March": ("February", "March"),
 }
 NOTICE_TEXT = {
     **WARNING_TEXT,
@@ -42,16 +37,6 @@ QUALITY_TEXT = {
 }
 
 
-def run_demo(scenario, question, comparison):
-    first, second = COMPARISONS[comparison]
-    baseline = Period(start=MONTHS[first][0], end=MONTHS[first][1])
-    current = Period(start=MONTHS[second][0], end=MONTHS[second][1])
-    data = load_scenario(scenario)
-    result = run_assisted_analysis(data, AnalysisRequest(question=question,
-        baseline=baseline, comparison=current, opening_period=current))
-    return data.profile, result
-
-
 def main():
     st.set_page_config(page_title="Service Operations Analyst", page_icon="📊", layout="wide")
     st.title("Service Operations Analyst")
@@ -65,27 +50,41 @@ def main():
             question = st.selectbox("Question", list(QUESTIONS),
                 format_func=lambda key: QUESTIONS[key], key="question")
             comparison = st.selectbox("Comparison", list(COMPARISONS), key="comparison")
+            use_ai = st.checkbox("Use AI to propose the analysis", value=False, key="use_ai")
             submitted = st.form_submit_button("Run analysis", key="run_analysis")
-        st.caption("Deterministic mode · no live model calls.")
+        st.caption("AI runs only when selected and submitted. The demo has a small shared AI allowance.")
         st.write("Resolution statistics select completed requests by resolution date. "
                  "Workload analysis uses opening dates during the comparison month.")
     if submitted or "_demo_result" not in st.session_state:
         # Clear stale output before attempting a different submitted selection.
         st.session_state.pop("_demo_result", None)
         try:
-            profile, result = run_demo(scenario, question, comparison)
+            ai_requested = bool(submitted and use_ai)
+            with st.spinner("Preparing and verifying the analysis…"):
+                profile, result, ai_notice = run_demo_analysis(scenario, question, comparison, use_ai=ai_requested)
         except Exception:
             st.error("The analysis could not be produced. Choose another synthetic scenario and run again.")
             return
         st.session_state["_demo_result"] = result
         st.session_state["_demo_profile"] = profile
         st.session_state["_demo_selection"] = (scenario, question, comparison)
+        st.session_state["_demo_ai_requested"] = ai_requested
+        st.session_state["_demo_ai_notice"] = ai_notice
     result = st.session_state["_demo_result"]
     profile = st.session_state["_demo_profile"]
     scenario, question, comparison = st.session_state["_demo_selection"]
     report = result.report
     st.caption(f"Displayed analysis: {SCENARIOS[scenario].label} · {comparison} · {QUESTIONS[question]}")
     st.info(SCENARIOS[scenario].description)
+    if st.session_state["_demo_ai_requested"]:
+        st.caption(f"AI requested · planning: {result.planning_source} · findings: {result.findings_source} "
+                   f"· {result.model_calls} model calls")
+        if st.session_state["_demo_ai_notice"]:
+            st.warning(AI_NOTICE_TEXT[st.session_state["_demo_ai_notice"]])
+        elif result.fallback_codes:
+            st.warning("Some AI proposals could not be used. The report shows verified results and available deterministic findings.")
+    else:
+        st.caption("Deterministic mode · no live model calls.")
     if report.status == "complete":
         st.success("Requested analysis completed. Findings retain their data and interpretation limitations.")
     elif report.status == "partial":
@@ -168,6 +167,13 @@ def main():
                  f"· {result.model_calls} model calls")
         st.dataframe([s.model_dump() for s in report.steps], hide_index=True, width="stretch")
         st.dataframe([e.model_dump() for e in report.events], hide_index=True, width="stretch")
+        if result.model_events:
+            st.subheader("AI proposal outcomes")
+            st.dataframe([e.model_dump() for e in result.model_events], hide_index=True, width="stretch")
+        if result.fallback_codes:
+            st.write("AI fallback codes: " + ", ".join(result.fallback_codes))
+        if result.rejected_findings is not None:
+            st.write(f"Withheld AI findings: {len(result.rejected_findings.quarantined)}")
         with st.expander("Calculation and report identifiers"):
             st.json({"run_id": report.run_id, "report_id": report.report_id, "dataset_id": report.dataset_id,
                      "planning_source": result.planning_source, "findings_source": result.findings_source,

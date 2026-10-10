@@ -100,8 +100,73 @@ def test_workload_scenario_and_region_day_semantics():
     assert chart.points[0].evidence.sample_unit == "region_days"
 
 
-def test_no_upload_secret_entry_or_live_model_controls():
+def test_no_upload_or_secret_entry_controls():
     at = app()
     assert not at.exception
     assert not at.get("file_uploader") and not at.text_input and not at.text_area
     assert len(at.selectbox) == 3
+
+
+def test_ai_requires_submission_and_rerender_does_not_call(monkeypatch):
+    import service_analysis.demo_inference as demo
+    from test_demo_inference import SyntheticModel
+    fake = SyntheticModel()
+    monkeypatch.setattr(demo, "CONTROLLER", demo.DemoAIController(factory=lambda: fake))
+    at = app()
+    assert not at.checkbox(key="use_ai").value
+    at.checkbox(key="use_ai").check().run()
+    assert not fake.requests
+    assert at.session_state["_demo_result"].model_calls == 0
+    submit(at)
+    assert not at.exception
+    assert len(fake.requests) == 2
+    assert at.session_state["_demo_result"].planning_source == "model"
+    assert at.metric[2].value == "+16.00 hours"
+    run_id = at.session_state["_demo_result"].execution.run_id
+    at.run()
+    assert len(fake.requests) == 2
+    assert at.session_state["_demo_result"].execution.run_id == run_id
+    assert any("AI requested" in c.value for c in at.caption)
+
+
+def test_ai_unavailable_shows_visible_fallback(monkeypatch):
+    import service_analysis.demo_inference as demo
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+    monkeypatch.setattr(demo, "CONTROLLER", demo.DemoAIController())
+    at = app()
+    at.checkbox(key="use_ai").check()
+    submit(at)
+    assert not at.exception
+    assert at.session_state["_demo_result"].model_calls == 0
+    assert any("AI is not configured" in w.value for w in at.warning)
+    assert at.metric[2].value == "+16.00 hours"
+
+
+def test_ai_wrong_finding_shows_fallback_and_quarantine(monkeypatch):
+    import service_analysis.demo_inference as demo
+    from test_demo_inference import SyntheticModel
+    monkeypatch.setattr(demo, "CONTROLLER",
+                        demo.DemoAIController(factory=lambda: SyntheticModel(wrong_value=True)))
+    at = app()
+    at.checkbox(key="use_ai").check()
+    submit(at)
+    assert not at.exception
+    assert any("Some AI proposals could not be used" in w.value for w in at.warning)
+    assert any("Withheld AI findings: 1" in m.value for m in at.markdown)
+    assert at.session_state["_demo_result"].findings_source == "deterministic"
+
+
+def test_ai_exhaustion_remains_usable(monkeypatch):
+    import service_analysis.demo_inference as demo
+    from test_demo_inference import SyntheticModel
+    controller = demo.DemoAIController(factory=SyntheticModel)
+    monkeypatch.setattr(demo, "CONTROLLER", controller)
+    for _ in range(4):
+        controller.reserve_transport()
+    at = app()
+    at.checkbox(key="use_ai").check()
+    submit(at)
+    assert not at.exception
+    assert any("allowance is exhausted" in w.value for w in at.warning)
+    assert at.session_state["_demo_result"].model_calls == 0
+    assert at.metric[2].value == "+16.00 hours"
