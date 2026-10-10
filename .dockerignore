@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!requirements.txt
+!app.py
+!src/
+!src/service_analysis/
+!src/service_analysis/*.py
