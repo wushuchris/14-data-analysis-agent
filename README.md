@@ -13,7 +13,7 @@ short_description: Verified analysis of synthetic service operations
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. The deterministic Streamlit demo is deployed on Hugging Face through test-gated GitHub Actions. Live provider transport is not configured.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. The deterministic Streamlit demo is deployed on Hugging Face through test-gated GitHub Actions. A fixed Hugging Face router transport is implemented with simulated HTTP tests; live UI activation and provider evaluation are pending.**
 
 [Explore the live synthetic demo](https://huggingface.co/spaces/FlyingNunchucks/14-data-analysis-agent).
 
@@ -131,7 +131,7 @@ Plans can select only summarize, compare, decompose, and workload calls. The app
 
 The run reserves at most six top-level steps across at most two accepted rounds. Blocked and skipped steps still consume reserved slots. Dependencies use zero-based positions across the whole run; application-generated IDs appear in outcomes. Only a completed prerequisite allows its dependent step to execute. Independent steps can continue after another step fails.
 
-Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. The provider-neutral model boundary and deterministic demo are available below; live provider transport remains to be configured.
+Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. The provider-neutral model boundary and deterministic demo are available below; live UI activation and provider evaluation remain pending.
 
 ## Structured findings and evidence verification
 
@@ -161,7 +161,7 @@ The chart renderer uses the Python standard library and existing schema dependen
 
 ## Bounded model adapter
 
-`run_assisted_analysis(dataset, request, transport=None)` orchestrates planning, approved calculations, finding verification, and report assembly. With no transport it uses the deterministic plan and factual findings without inference. An injected application transport implements `complete(ModelRequest) -> ModelResponse`; no provider SDK, network endpoint, credentials, or billing is configured yet.
+`run_assisted_analysis(dataset, request, transport=None)` orchestrates planning, approved calculations, finding verification, and report assembly. With no transport it uses the deterministic plan and factual findings without inference. An injected application transport implements `complete(ModelRequest) -> ModelResponse`; the optional HF transport below supplies the network boundary. The default UI still uses no transport.
 
 The adapter sends the actual application JSON schemas, the selected question/periods, aggregate quality counts, readiness flags, and bounded scalar evidence. It sends no raw request records, workload pair tables, original snapshots, row-level issue locations, or prior model text. Findings and follow-ups disclose when the evidence list is truncated.
 
@@ -173,7 +173,7 @@ The returned AssistedAnalysis records planning/finding sources, model-call event
 
 Default request controls are 2,000 output tokens, a 20-second timeout, 32 KiB responses, 64 evidence facts, and 64 KiB combined input/schema/instructions. The adapter checks byte and call budgets itself; the transport must enforce token limits and network timeout. A synchronous transport that ignores timeout cannot be interrupted by this module.
 
-All model-adapter tests use simulated responses. Live provider compatibility, structured-output translation, cost, and actual timeout behavior must be checked when implementing the transport.
+All model-adapter and transport tests use simulated responses. Actual provider compatibility and production behavior remain to be evaluated before exposing AI mode.
 
 ## Explore the synthetic demo
 
@@ -198,3 +198,15 @@ CI includes independent scenario oracles and Streamlit AppTest checks for defaul
 
 MIT. See [LICENSE](LICENSE).
 
+
+## Optional Hugging Face inference transport
+
+`HFRouterTransport()` reads `HF_TOKEN` from the backend environment and sends one POST per adapter call to the fixed Hugging Face chat-completions router. The selected model is `openai/gpt-oss-20b:groq`, a modest open model with provider-documented strict structured output. No separate Groq account/key or new runtime dependency is needed.
+
+The provider schema removes annotations/defaults, requires every object field, converts literal `const` to singleton `enum`, and encodes the discriminated tool union using `anyOf`. It preserves date formats, bounds, existing nullability, and closed objects. The original application schemas and evidence checks still decide acceptance. Provider JSON conformance never establishes analytical correctness.
+
+The transport forwards output-token and socket-timeout controls, caps the HTTP response at 96 KiB and content at 32 KiB, rejects redirects, and performs no automatic retries. HTTP authentication, missing credits, rate limits, network failures, malformed output, and refusals return sanitized codes. Provider response bodies, prompts, and credentials are never added to audit objects. A socket timeout is per blocking operation, not a hard total deadline; DNS and slow response delivery require a worker-level deadline in a production upgrade.
+
+The public UI remains deterministic in this milestone, so adding the Space secret alone makes no inference calls. Live activation will require explicit controls and bounded production checks. A per-run call limit does not enforce a monthly account spending cap; public access controls must be decided before unrestricted AI use.
+
+Provider references: [HF Groq routing](https://huggingface.co/docs/inference-providers/en/providers/groq), [Groq structured output](https://console.groq.com/docs/structured-outputs), and [HF credits and billing](https://huggingface.co/docs/inference-providers/pricing). Model availability and prices can change.

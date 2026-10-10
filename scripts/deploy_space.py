@@ -22,6 +22,7 @@ SOURCE_FILES = (
     "src/service_analysis/execution.py",
     "src/service_analysis/findings.py",
     "src/service_analysis/model_adapter.py",
+    "src/service_analysis/hf_transport.py",
     "src/service_analysis/planning.py",
     "src/service_analysis/quality.py",
     "src/service_analysis/reporting.py",
