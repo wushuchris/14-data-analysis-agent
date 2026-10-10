@@ -13,7 +13,9 @@ short_description: Verified analysis of synthetic service operations
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. The deterministic Streamlit demo is implemented. Test-gated Docker deployment is prepared but disabled pending Space and credential setup. Live provider transport is not configured.**
+**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. The deterministic Streamlit demo is deployed on Hugging Face through test-gated GitHub Actions. Live provider transport is not configured.**
+
+[Explore the live synthetic demo](https://huggingface.co/spaces/FlyingNunchucks/14-data-analysis-agent).
 
 ## The problem
 
@@ -75,7 +77,7 @@ Deployment remains disabled until that variable is set. Setting the variable alo
 
 The deterministic demo requires no runtime inference token and makes no model calls. If a live transport is added later, its runtime credential belongs in the Space secret `HF_TOKEN`, separate from GitHub's deployment token.
 
-Successful sync means files reached Hugging Face; the Space build and live production behavior must be checked separately before calling deployment complete. Docker startup checks complement the Streamlit AppTest suite and do not replace that production check.
+The first successful deployment passed 396 tests and container checks in GitHub, synced the tested commit, completed the Hugging Face build, and passed the default live browser smoke check. For future releases, successful sync means files reached Hugging Face; check the Space build and live production behavior separately. Docker startup checks complement the Streamlit AppTest suite and do not replace that production check.
 
 See [Hugging Face Spaces overview](https://huggingface.co/docs/hub/spaces-overview) for account requirements and [Docker Spaces](https://huggingface.co/docs/hub/spaces-sdks-docker) for container configuration.
 
@@ -129,7 +131,7 @@ Plans can select only summarize, compare, decompose, and workload calls. The app
 
 The run reserves at most six top-level steps across at most two accepted rounds. Blocked and skipped steps still consume reserved slots. Dependencies use zero-based positions across the whole run; application-generated IDs appear in outcomes. Only a completed prerequisite allows its dependent step to execute. Independent steps can continue after another step fails.
 
-Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. The provider-neutral model boundary and deterministic demo are available below; live transport and public deployment remain to be configured.
+Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. The provider-neutral model boundary and deterministic demo are available below; live provider transport remains to be configured.
 
 ## Structured findings and evidence verification
 
@@ -155,7 +157,7 @@ These evidence interfaces trust application-owned run objects. Typed fields and 
 
 Bar scales include zero; negative changes extend left of zero. Correlations use a fixed -1 to +1 domain. Undefined values display as unavailable and receive no bar. Decomposition components and the observed total are separate bars, not stacked together. Chart specifications and renderers are application-owned.
 
-The chart renderer uses the Python standard library and existing schema dependency. No plotting framework or model call is needed. The interactive demo UI is implemented below; deployment remains a later milestone.
+The chart renderer uses the Python standard library and existing schema dependency. No plotting framework or model call is needed. The interactive demo UI is deployed on Hugging Face using the GitHub workflow described above.
 
 ## Bounded model adapter
 
@@ -190,7 +192,7 @@ Bundled scenarios cover stable operation, mix change, slower handling, combined 
 
 This UI accepts only bundled synthetic data and has no upload, secret-entry, or live-model controls. It runs without inference credentials. The displayed selection is stored with its report; ordinary rerenders do not execute tools again. State is session-local and does not claim durable reload/resume.
 
-CI includes independent scenario oracles and Streamlit AppTest checks for default/alternate selections, incomplete data, failed source validation, execution counts, and rerender behavior. A browser production check will follow deployment.
+CI includes independent scenario oracles and Streamlit AppTest checks for default/alternate selections, incomplete data, failed source validation, execution counts, and rerender behavior. A live browser smoke check on October 10, 2026 confirmed the default completed report, 16 → 32 hour means, +16 hour change, +12 hour mix contribution, +4 hour within-category contribution, sample counts, and interpretation limitations. This check covered the default browser path; the automated suite covers alternate selections and failure scenarios.
 
 ## License
 
