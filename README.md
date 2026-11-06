@@ -218,3 +218,5 @@ Provider references: [HF Groq routing](https://huggingface.co/docs/inference-pro
 ### Runtime authentication check
 
 The October 10, 2026 live AI submission returned `HF_AUTH_FAILED` after one model call attempt. The known-answer report remained available through deterministic fallback, with three approved tool calls and a +16 hour change. A Streamlit regression test covers that visible failure. Successful live planning/findings are not yet claimed. The runtime token must be accepted independently of the working deployment token.
+
+Runtime diagnostics preserve safe HTTP status codes: `HF_AUTH_FAILED_HTTP_401` identifies a credential rejection and `HF_AUTH_FAILED_HTTP_403` identifies an authorization denial. Neither code proves the specific underlying account/token setting; provider text and credentials remain excluded. Simulated transport and UI regressions cover both statuses without retrying inference.

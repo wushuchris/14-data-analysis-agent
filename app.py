@@ -84,6 +84,8 @@ def main():
         elif result.fallback_codes:
             messages = {
                 "HF_AUTH_FAILED": "Hugging Face rejected the runtime inference credential. This report uses deterministic analysis.",
+                "HF_AUTH_FAILED_HTTP_401": "Hugging Face rejected the runtime inference credential (HTTP 401). This report uses deterministic analysis.",
+                "HF_AUTH_FAILED_HTTP_403": "Hugging Face denied permission for this inference request (HTTP 403). This report uses deterministic analysis.",
                 "HF_CREDITS_UNAVAILABLE": "Inference credits are unavailable. This report retains verified results and deterministic findings.",
                 "HF_RATE_LIMITED": "The inference service limited this request. This report retains verified results and deterministic findings.",
                 "MODEL_TIMEOUT": "The AI request timed out. This report retains verified results and deterministic findings.",

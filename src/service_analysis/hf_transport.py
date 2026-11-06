@@ -115,7 +115,7 @@ class HFRouterTransport:
             with self._opener.open(wire_request, timeout=request.timeout_seconds) as response:
                 raw = response.read(MAX_WIRE_BYTES + 1)
         except HTTPError as exc:
-            code = {401: "HF_AUTH_FAILED", 403: "HF_AUTH_FAILED",
+            code = {401: "HF_AUTH_FAILED_HTTP_401", 403: "HF_AUTH_FAILED_HTTP_403",
                     402: "HF_CREDITS_UNAVAILABLE", 429: "HF_RATE_LIMITED"}.get(
                         exc.code, "HF_HTTP_FAILED")
             exc.close()

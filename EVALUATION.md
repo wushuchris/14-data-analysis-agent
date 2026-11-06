@@ -112,3 +112,7 @@ Assess correctness, evidence traceability, appropriate uncertainty, business use
 The deployed default remained deterministic with zero model calls and the known +16 hour change. An explicit AI submission attempted one model call and received the sanitized `HF_AUTH_FAILED` code (HTTP 401/403 classification). There was no automatic retry. Approved calculations still ran deterministically: three tool calls, baseline 16 hours, comparison 32 hours, and +16 hours overall.
 
 A regression test now exercises that failure through the Streamlit UI, checks a specific authentication message and safe audit code, and verifies that the known-answer metrics survive. Transport and orchestration tests already cover authentication failures without exposing provider diagnostics. Successful live planning/findings and structured-output compatibility remain unverified until runtime credentials are accepted. Deployment authentication and inference authentication are separate checks.
+
+## Authentication diagnostic follow-up — November 6, 2026
+
+A bounded live check after a runtime-secret update still returned the grouped authentication-failure classification. The transport now distinguishes safe HTTP 401 and 403 status codes, with separate UI messages and regression coverage. This avoids repeatedly prescribing token replacement without knowing whether the route rejected credentials or denied authorization. No raw provider body, token, prompt, or response text is added to public diagnostics. Successful live model output remains pending.

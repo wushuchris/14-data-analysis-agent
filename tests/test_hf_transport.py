@@ -110,7 +110,7 @@ def test_missing_or_invalid_secret(monkeypatch, token):
         HFRouterTransport()
 
 
-@pytest.mark.parametrize("status,code", [(401,"HF_AUTH_FAILED"), (403,"HF_AUTH_FAILED"),
+@pytest.mark.parametrize("status,code", [(401,"HF_AUTH_FAILED_HTTP_401"), (403,"HF_AUTH_FAILED_HTTP_403"),
     (402,"HF_CREDITS_UNAVAILABLE"), (429,"HF_RATE_LIMITED"),
     (503,"HF_HTTP_FAILED"), (307,"HF_HTTP_FAILED"), (400,"HF_HTTP_FAILED")])
 def test_http_failures_sanitized_and_not_retried(monkeypatch, status, code):
