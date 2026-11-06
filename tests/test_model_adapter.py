@@ -264,3 +264,17 @@ def test_sessions_have_separate_budgets_and_event_ids():
     assert a.model_calls == b.model_calls == 2
     assert a.execution.run_id != b.execution.run_id
     assert a.model_events[0].request_id != b.model_events[0].request_id
+
+
+def test_finding_generation_budget_is_enforced_before_publication():
+    def oversized(model_request):
+        good = json.loads(findings(model_request).text)["findings"][0]
+        assert json.loads(model_request.response_schema_json)["properties"]["findings"]["maxItems"] == 4
+        assert "Current task: findings." in model_request.instruction
+        return response({"findings":[good] * 5})
+    transport = ScriptedTransport(response(plan()), oversized)
+    result = run_assisted_analysis(dataset(), request(), transport, allow_followup=False)
+    assert result.findings_source == "deterministic"
+    assert "MODEL_FINDING_LIMIT_EXCEEDED" in result.fallback_codes
+    assert result.report.findings.accepted
+    assert result.model_calls == 2

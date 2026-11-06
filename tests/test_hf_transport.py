@@ -281,3 +281,21 @@ def test_finding_http_failure_category_does_not_expose_generated_text(monkeypatc
     assert str(error.value) == expected
     assert "synthetic" not in str(error.value)
     assert len(instance._test_adapter.calls) == 1
+
+
+def test_finding_number_schema_uses_equivalent_single_numeric_type():
+    original = FindingsProposal.model_json_schema()
+    translated = provider_schema(original)
+    assert translated["$defs"]["FindingDraft"]["properties"]["claimed_value"] == {"type":"number"}
+    assert translated["properties"]["findings"]["maxItems"] == 4
+    assert "anyOf" in original["$defs"]["FindingDraft"]["properties"]["claimed_value"]
+
+
+def test_numeric_union_with_other_constraints_is_not_widened():
+    original = {"anyOf":[{"type":"integer","minimum":0},{"type":"number"}]}
+    assert provider_schema(original) == original
+
+
+def test_numeric_union_does_not_widen_an_existing_integer_constraint():
+    original = {"type":"integer","anyOf":[{"type":"integer"},{"type":"number"}]}
+    assert provider_schema(original) == original

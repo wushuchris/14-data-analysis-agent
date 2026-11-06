@@ -52,6 +52,11 @@ def provider_schema(schema):
             result["enum"] = [value]
         else:
             result[key] = value
+    if "type" not in result and result.get("anyOf") in ([{"type": "integer"}, {"type": "number"}],
+                               [{"type": "number"}, {"type": "integer"}]):
+        # JSON Schema numbers include integers; this union is exactly redundant.
+        result.pop("anyOf")
+        result["type"] = "number"
     if result.get("type") == "object":
         if result.get("additionalProperties") is not False:
             raise ValueError("closed object required")

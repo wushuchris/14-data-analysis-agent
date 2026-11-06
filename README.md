@@ -232,3 +232,7 @@ The router transport uses Requests, following the documented Hugging Face REST i
 ### Live HTTP client result — November 6, 2026
 
 With the runtime token, model, and Groq configuration unchanged, replacing urllib networking with Requests allowed the live plan request to succeed. The application accepted the model plan and completed the requested analysis with four approved tool calls, retaining the known 16 → 32 hour result. The separate findings request failed at the HTTP boundary, so verified deterministic findings were retained. This is evidence of improved client compatibility; it does not establish the precise infrastructure rule behind the earlier 403. Safe diagnostics now preserve other HTTP statuses and recognize provider JSON-generation, schema-rejection, context-limit, and unavailable-model categories without publishing response bodies or failed generated text.
+
+### Bounded finding generation
+
+Live model proposals are limited to four findings in both the response schema and the application batch guard; the general evidence-verification API retains its separate 20-item capacity. Existing evidence references must be copied exactly, and the current task is explicit in the instruction. The provider schema encodes the exactly equivalent union of JSON integer and number as a single number type, preserving the original strict application validation. This narrows generation work without reducing evidence or numeric verification. An oversized model batch is withheld and deterministic findings remain available.

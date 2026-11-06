@@ -56,8 +56,11 @@ class ModelTransport(Protocol):
     def complete(self, request: ModelRequest) -> ModelResponse: ...
 
 
+MAX_MODEL_FINDINGS = 4
+
+
 class FindingsProposal(Contract):
-    findings: tuple[FindingDraft, ...] = Field(max_length=20)
+    findings: tuple[FindingDraft, ...] = Field(max_length=MAX_MODEL_FINDINGS)
 
 
 class FollowupProposal(Contract):
@@ -97,14 +100,25 @@ INSTRUCTION = (
     "Use only the requested periods and approved operations. Plans use global zero-based backward "
     "dependencies and share six reserved steps. Initial plans must include the overall period comparison. "
     "A follow-up returns {plan: null} when no additional analysis is needed. "
-    "Findings select supplied evidence references and exact computed values; null metrics cannot be claimed. "
-    "Select only compatible investigation topics. Never supply observation prose, IDs, scope overrides, "
+    "Findings select at most four important supplied evidence references and exact computed values; "
+    "copy the supplied result_id, metric, and group exactly. Null metrics cannot be claimed. "
+    "Select only compatible investigation topics. Never invent IDs or supply observation prose, scope overrides, "
     "causal claims, or replacement limitations."
 )
 
 
 def _json(value):
     return json.dumps(value, allow_nan=False, separators=(",", ":"))
+
+
+def _exceeds_finding_limit(text):
+    # Preserve per-item quarantine below; only an over-budget batch is rejected.
+    try:
+        envelope = json.loads(text, object_pairs_hook=_pairs, parse_constant=_nonfinite)
+    except (ValueError, TypeError, RecursionError):
+        return False
+    return (isinstance(envelope, dict) and isinstance(envelope.get("findings"), list)
+            and len(envelope["findings"]) > MAX_MODEL_FINDINGS)
 
 
 def _annotate_incomplete(report):
@@ -161,11 +175,12 @@ def run_assisted_analysis(dataset: PreparedDataset, request: AnalysisRequest,
             raise AdapterError("MODEL_CALL_BUDGET_EXHAUSTED")
         encoded = _json(payload)
         schema_json = _json(schema.model_json_schema())
-        if len((encoded + schema_json + INSTRUCTION).encode()) > policy.maximum_input_bytes:
+        instruction = INSTRUCTION + " Current task: " + purpose + "."
+        if len((encoded + schema_json + instruction).encode()) > policy.maximum_input_bytes:
             emit(purpose, "failed", "MODEL_INPUT_TOO_LARGE")
             raise AdapterError("MODEL_INPUT_TOO_LARGE")
         model_request = ModelRequest(request_id="model-" + uuid4().hex, purpose=purpose,
-            instruction=INSTRUCTION, payload_json=encoded, response_schema_json=schema_json,
+            instruction=instruction, payload_json=encoded, response_schema_json=schema_json,
             maximum_output_tokens=policy.maximum_output_tokens, timeout_seconds=policy.timeout_seconds)
         calls += 1
         emit(purpose, "requested", request_id=model_request.request_id)
@@ -288,14 +303,17 @@ def run_assisted_analysis(dataset: PreparedDataset, request: AnalysisRequest,
         except AdapterError as error:
             fallback_codes.append(error.code)
         else:
-            proposed = assemble_report(execution, text)
-            if proposed.findings.accepted:
-                report = proposed
-                findings_source = "model"
+            if _exceeds_finding_limit(text):
+                fallback_codes.append("MODEL_FINDING_LIMIT_EXCEEDED")
             else:
-                rejected_findings = proposed.findings
-                fallback_codes.append("MODEL_FINDINGS_REJECTED" if proposed.findings.status != "empty"
-                                      else "MODEL_FINDINGS_EMPTY")
+                proposed = assemble_report(execution, text)
+                if proposed.findings.accepted:
+                    report = proposed
+                    findings_source = "model"
+                else:
+                    rejected_findings = proposed.findings
+                    fallback_codes.append("MODEL_FINDINGS_REJECTED" if proposed.findings.status != "empty"
+                                          else "MODEL_FINDINGS_EMPTY")
     required = {call_key(step.call) for step in recipe.steps}
     completed = {call_key(step.call) for step in execution.outcomes if step.status == "completed"}
     requested_status = "complete" if required <= completed else "partial"
