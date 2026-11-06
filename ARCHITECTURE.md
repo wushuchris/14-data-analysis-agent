@@ -1,6 +1,6 @@
 # Architecture
 
-Status: intake, resolution summary/comparison, mean-change decomposition, and workload association implemented. Bounded planning and execution are implemented. Structured numerical findings and evidence verification are implemented. Report assembly and standalone SVG charts are implemented. A provider-neutral model boundary is implemented. The deterministic Streamlit UI is implemented. Free-form interpretation, live provider transport, and public deployment remain planned.
+Status: validated intake, analytical tools, bounded execution, evidence verification, reports/charts, the synthetic Streamlit demo, and the optional fixed Hugging Face transport are implemented. The default live AI path passed both model stages on November 6, 2026. See EVALUATION.md and PRODUCTION_VALIDATION.md for observed behavior and remaining release gates. Free-form interpretation is outside the publication boundary.
 
 ## Stages and contracts
 
@@ -9,7 +9,7 @@ Status: intake, resolution summary/comparison, mean-change decomposition, and wo
 | Intake | Validate tables, record exclusions, assess coverage | DatasetProfile |
 | Planning | Choose approved operations and dependencies | AnalysisPlan / CompiledStep |
 | Execution | Run validated Pandas operations and controlled SQL | MetricResult |
-| Interpretation | Propose observations, interpretations, limitations | FindingDraft |
+| Finding selection | Select computed evidence and bounded investigation topics | FindingDraft; HF evidence-selection wire contract |
 | Verification | Validate evidence and numerical references | VerifiedFinding |
 | Reporting | Assemble charts, findings, notices, and exports | AnalysisReport |
 
@@ -94,7 +94,7 @@ The six-slot budget includes blocked and skipped steps; tool_calls separately co
 
 Each step passes its data-quality gate before dispatch through a fixed application registry. Dependents of partial, blocked, failed, or skipped steps are skipped. Independent work continues. Returned result schemas, dataset identity, grouping, and periods are checked before outcomes expose results. Calculation disagreement and invalid output are failures; missing data blocks analysis. Raw exceptions never enter public events.
 
-Run IDs are unique; result IDs remain deterministic. The iterator yields real lifecycle events and a final RunReport. Abandoning the iterator stops subsequent work; there is no durable persistence or resume guarantee. Deterministic tool failures are not retried. Provider timeout errors and deterministic fallback are handled by the adapter described below. A live transport remains future work.
+Run IDs are unique; result IDs remain deterministic. The iterator yields real lifecycle events and a final RunReport. Abandoning the iterator stops subsequent work; there is no durable persistence or resume guarantee. Deterministic tool failures are not retried. Provider timeout errors and deterministic fallback are handled by the adapter described below. The implemented optional HF transport is described below.
 
 ## Implemented findings contract
 
@@ -108,7 +108,7 @@ Accepted observations use fixed application wording. Drafts cannot supply arbitr
 
 The deterministic fallback selects up to 20 defined catalog metrics and passes them through the same verifier. FindingsReport status describes verification, independently of RunReport and source result statuses. An empty result means there were no proposed/available findings; it does not imply stable business performance.
 
-The catalog consumes application-owned run objects. It cannot authenticate externally modified persisted records or prove a trusted tool was actually executed using a hash alone. Production report imports would require provenance and access controls. Narrative evaluation and deployed browser production checks remain later milestones. Report assembly and chart consistency controls are described below.
+The catalog consumes application-owned run objects. It cannot authenticate externally modified persisted records or prove a trusted tool was actually executed using a hash alone. Production report imports would require provenance and access controls. Free-form narrative is not supported; deployed production checks are recorded separately. Report assembly and chart consistency controls are described below.
 
 ## Implemented report and chart boundary
 
@@ -122,11 +122,11 @@ Mean and mean-change bars include zero; signed changes retain their sign. Correl
 
 Report IDs hash the assembled payload including the run identity. Reassembly of the same run/proposals is stable; different executions have distinct report IDs. Chart IDs depend on result identity, chart kind, and rendering-contract version. These identifiers provide traceability, not authentication of external files.
 
-JSON exports contain aggregate evidence and sanitized run events, not original request records. There is no external report-import endpoint. The standard-library SVG renderer adds no plotting dependency. The deterministic UI is described below; production deployment remains a separate milestone.
+JSON exports contain aggregate evidence and sanitized run events, not original request records. There is no external report-import endpoint. The standard-library SVG renderer adds no plotting dependency. The deterministic UI is described below; the test-gated GitHub deployment is implemented.
 
 ## Implemented model boundary
 
-AnalysisRequest selects one supported question plus explicit baseline, comparison, and optional opening period. Application periods and deterministic recipe are validated before a transport call. Model proposals remain constrained to those periods; initial plans must include the overall comparison. Required recipe operations establish question coverage, so a successful subset cannot silently become a complete answer.
+AnalysisRequest selects one supported question plus explicit baseline, comparison, and optional opening period. Application periods and deterministic recipe are validated before a transport call. Model proposals remain constrained to those periods; initial plans must include every question-specific minimum analytical call before dispatch. Required recipe operations establish question coverage, so a successful subset cannot silently become a complete answer.
 
 ModelTransport is an injected application protocol, not a model-selected tool. ModelRequest carries a purpose, unique request ID, fixed instructions, bounded JSON context, actual response schema, token limit, and timeout. ModelResponse requires an explicit finish reason. Refusal, truncation, provider error, invalid envelopes, excessive byte size, and timeout exceptions are rejected rather than scraping or accepting partial text.
 
@@ -138,7 +138,7 @@ Initial operational failure selects deterministic mode without another provider 
 
 AssistedAnalysis retains computation report, execution, optional rejected planning/finding attempts, model events, call count, explicit planning/finding sources, fallback codes, and requested-work coverage. Model events reflect transport activity but do not claim a generated result passed semantic validation; plan and finding checks remain independently visible.
 
-The adapter enforces call and byte budgets. The injected transport must enforce timeout and generation-token limits; this synchronous protocol cannot interrupt a transport that ignores those limits. No live provider, SDK, secret, endpoint, or inference cost is introduced at this milestone. Provider-specific schema support, refusal mapping, timeout behavior, billing, and production checks remain future integration work.
+The adapter enforces call and byte budgets. The injected transport must enforce timeout and generation-token limits; this synchronous protocol cannot interrupt a transport that ignores those limits. The optional HF transport implements the network boundary; its runtime credential is supplied only through the Space secret. Deterministic and simulated tests make no live calls.
 
 ## Synthetic scenarios and UI
 
@@ -150,14 +150,24 @@ A default deterministic analysis runs once for a fresh session. Submitted change
 
 The UI leads with baseline/comparison means and change, then evidence-supported findings, charts, preparation quality, and real run events. Samples distinguish selected-period counts from whole-dataset input counts. Missing conclusions remain visibly partial/unavailable. General investigation topics are labeled as follow-ups, not causal findings. Downloads contain aggregate report evidence or rendered charts.
 
-The demo accepts no uploaded business data, free-form prompts, secrets, or live-provider controls. No inference calls occur. Streamlit AppTest exercises user selections and displayed outputs in CI; deployed browser layout and download checks remain release gates.
+The demo accepts no uploaded business data, free-form prompts, or secret entry. AI requires an explicit checkbox and form submission; initial load, tab changes, rerenders, and downloads make no inference calls. Streamlit AppTest exercises these controls. The scenario setup description explicitly identifies January → February, separately from the submitted comparison and computed result.
 
 ## Runtime and security
 
 One analyst agent; application-owned workflow and session-isolated run context. No persistent memory is required initially. Data cells are untrusted data, never instructions. Runtime events reflect actual execution. Public traces contain synthetic summaries and omit secrets and raw model prompts.
 
-The first public demo uses approved bundled data. Only bounded summaries and computed results will be supplied to the optional model adapter. No paid inference or additional infrastructure is required for deterministic mode.
+The first public demo uses approved bundled data. Only bounded summaries and computed results are supplied to the optional model adapter. No paid inference or additional infrastructure is required for deterministic mode.
 
 ## Production upgrades
 
 Before using real business data: authentication, authorization, approved data handling/retention, stronger isolation and resource limits, operational monitoring, audited provider data policies, larger-scale validation, and domain review. A real workload study would need richer timing, staffing, and request-cohort data to support stronger explanations.
+
+## Implemented HF transport and public AI controls
+
+The backend reads `HF_TOKEN` and uses a fixed Hugging Face router endpoint/model. Requests retains TLS verification, disables redirects and automatic retries, caps streamed response bodies, and releases connection pools. Safe codes identify authentication, authorization, credits, rate limits, schema/generation, refusal, truncation, and network failures without publishing provider response bodies. An otherwise unclassified 403 permits one bounded non-inference credential-validity check; identity metadata is discarded. Socket timeouts are not a hard total deadline.
+
+Planning uses the application tool schema and must include question-specific minimum calls before dispatch. Findings use a compact provider wire projection: at most four enumerated short evidence IDs and compatible investigation topics. The application resolves them to original typed references and exact computed numbers, then applies the unchanged independent verifier. Unknown/malformed selections remain quarantined; numerical observations remain application-rendered.
+
+A process-shared, locked controller permits four AI run reservations, each with up to three calls, 2,000 output tokens per call, and a 20-second socket timeout. Public mode disables model follow-up. Reservations do not replenish or refund through UI/session actions; process restart/redeploy resets them. This is a demo safeguard, not a persistent monthly spending cap or multi-replica quota. Missing credentials and exhausted allowance preserve deterministic analysis.
+
+Deployment uses standard GitHub-hosted runners, tests and container checks before main-only sync, a fixed existing CPU Basic Docker Space, an allowlisted source bundle, and a source/hash manifest. Pull requests never deploy. Deployment and runtime credentials remain separate. See SECURITY.md for the reviewed boundaries and production limitations.

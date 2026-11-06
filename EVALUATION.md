@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: deterministic calculations, planning/execution, evidence verification, reporting, synthetic scenarios, UI controls, and simulated transport failures are covered by automated tests. The November 6 default live AI check passed both model stages and complete requested-work coverage after 487 tests and container checks. Alternate production checks and final release/hygiene review remain pending.
+Status: release review completed November 6, 2026. Final UI/code passed 488 deterministic tests and container checks before deployment. Default/alternate/failure and export checks passed; the final bounded live AI run passed both model stages with complete requested work. See PRODUCTION_VALIDATION.md and SECURITY.md for scope, evidence, limitations, and public source/history review.
 
 ## Known-answer scenarios
 
@@ -62,7 +62,7 @@ Report summaries link to verified findings; chart values and findings share cata
 
 Known-answer charts cover summary means, group changes, decomposition components, and correlations. Positive, negative, and zero changes use a zero-inclusive domain; correlation scales remain [-1, 1]. Undefined contributions and correlations have no bars. SVG tests verify XML structure, escaped text, accessible descriptions, and rejection of scope/unit/nonfinite tampering. A rendered negative-change decomposition was inspected for layout and signed-bar behavior.
 
-These are deterministic reports and standalone SVG charts. The default deployed presentation has been checked; the default live-model check passed as recorded below; final release still requires alternate production checks.
+These are deterministic reports and standalone SVG charts. The default deployed presentation has been checked; the default live-model check passed as recorded below; alternate production checks subsequently passed as recorded in PRODUCTION_VALIDATION.md.
 
 ## Implemented simulated model coverage
 
@@ -149,6 +149,12 @@ Source commit: `b9cf18f136cdace39e1f4ece65252436647e2ebe`. Its GitHub workflow p
 | Baseline / comparison | 16 / 32 hours; 30 completed requests in each period |
 | Published mean-change finding | +16 hours; independently verified against computed evidence |
 
-The UI retained completed-request selection and association limitations. Finding selection came from the model; exact values and numerical observation text came from application code. This is one successful default production run, not an estimate of model reliability or validation of every alternate scenario. Remaining release gates include alternate production checks, public source/history hygiene, and final documentation/portfolio review.
+The UI retained completed-request selection and association limitations. Finding selection came from the model; exact values and numerical observation text came from application code. This is one successful default production run, not an estimate of model reliability or validation of every alternate scenario. Those release checks subsequently passed as recorded in PRODUCTION_VALIDATION.md and SECURITY.md.
 
 Lessons: HTTP 403 alone does not establish that a token is invalid; accepted identity and inference-route access are different observations. HTTP client and provider schema compatibility require bounded live checks. Admit the minimum question-specific analysis before dispatch. Let a model select useful evidence while application code owns computed values and publication. Meaningful live failures now have deterministic regression coverage.
+
+## Final-code production review and presentation regression
+
+The alternate-period browser check found that the scenario setup description needed an explicit January → February label. The calculated February → March zero change was correct. A regression now verifies the setup label, selected-period caption, 32/32 hour metrics, and unchanged-result wording together. Source `555b44eef12c82633fe4265926d3db21d31ad0bc` passed 488 tests and container checks before deployment.
+
+The rebuilt default and corrected alternate period passed. A final explicit AI submission on that source completed all three required tools with model planning and model finding selection, two model calls, no correction/fallback/quarantine, complete report/requested work, and a verified +16 hour finding. Broader deterministic production checks, downloaded aggregate exports, the security/privacy review, and public source/history scan are recorded in PRODUCTION_VALIDATION.md and SECURITY.md. Bounded successful checks do not establish a model reliability rate or production readiness for confidential data.

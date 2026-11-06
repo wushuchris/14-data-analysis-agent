@@ -13,7 +13,7 @@ short_description: Verified analysis of synthetic service operations
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: analytical tools, bounded execution, verified findings, charts, and the deployed synthetic demo are implemented. On November 6, 2026, the default live AI run completed model planning and model-selected findings with all three required analyses, two model calls, and no fallback. The source commit passed 487 automated tests and container checks before deployment. Final release review, alternate production checks, public-repository hygiene, and portfolio updates remain pending; the agent is not yet marked complete.**
+**Status: completed portfolio demonstration, November 6, 2026. The final UI/code passed 488 automated tests and container checks, deployed successfully, and passed default, alternate-period, missing-data, invalid-data, and export checks. A final bounded live run completed model planning and model-selected findings with all three required analyses, two model calls, and no fallback. Real business-data ingestion and production access/billing controls remain outside this version.**
 
 [Explore the live synthetic demo](https://huggingface.co/spaces/FlyingNunchucks/14-data-analysis-agent).
 
@@ -34,7 +34,7 @@ The report distinguishes slower handling within categories from a larger share o
 
 **The agent proposes analytical work. Application code validates it, computes results, and controls publication.**
 
-The model may select approved tools and explain validated results. It may not execute arbitrary Python or SQL, modify input records, change quality rules, invent evidence, or turn an association into established causation.
+The model may select approved tools, computed evidence, and bounded investigation topics. Application code renders numerical observations. It may not execute arbitrary Python or SQL, modify input records, change quality rules, invent evidence, or turn an association into established causation.
 
 ## Architecture
 
@@ -43,6 +43,7 @@ Dataset validation → bounded analysis plan → approved calculations → evide
 See [ARCHITECTURE.md](ARCHITECTURE.md) for contracts, execution limits, and failure handling.
 See [DATA_CONTRACT.md](DATA_CONTRACT.md) for the inputs and reporting semantics.
 See [EVALUATION.md](EVALUATION.md) for known-answer scenarios and release criteria.
+See [PRODUCTION_VALIDATION.md](PRODUCTION_VALIDATION.md) for the live review and walkthrough, and [SECURITY.md](SECURITY.md) for the security/privacy review and production upgrades.
 
 Tools: Python, Pydantic, Pandas, SQLite, pytest, Streamlit, Requests, and charts generated from validated result tables.
 
@@ -251,4 +252,8 @@ This smaller generation contract addresses live provider JSON-generation failure
 
 Source commit [`b9cf18f`](https://github.com/wushuchris/14-data-analysis-agent/commit/b9cf18f136cdace39e1f4ece65252436647e2ebe) passed 487 tests and container checks before deployment. In the deployed default combined-change scenario, January → February with the drivers question, both planning and finding selection used the model. All three required tools completed (overall comparison, case-mix decomposition, and workload association), with two model calls, no correction, no fallback, and no quarantined findings. Requested work and report status were complete.
 
-The displayed means were 16 and 32 hours, with 30 completed requests in each period. The published +16 hour finding passed independent evidence verification; application code supplied its exact computed value and rendered observation. This validates one bounded default live run, not a reliability rate across models or scenarios. Alternate production checks and final release review remain pending.
+The displayed means were 16 and 32 hours, with 30 completed requests in each period. The published +16 hour finding passed independent evidence verification; application code supplied its exact computed value and rendered observation. This validates one bounded default live run, not a reliability rate across models or scenarios. Alternate production checks and final release review subsequently passed; see PRODUCTION_VALIDATION.md.
+
+### Final release review — November 6, 2026
+
+The final UI/code commit `555b44eef12c82633fe4265926d3db21d31ad0bc` passed 488 tests, container checks, automatic deployment, and a fresh live AI check after the scenario-setup period label correction. Model planning and evidence selection both succeeded in two calls; all three requested analyses completed and the published +16 hour finding matched application calculations. Default/alternate/failure paths, downloaded JSON/SVG, security/privacy boundaries, and public source/history hygiene are recorded in PRODUCTION_VALIDATION.md and SECURITY.md. The walkthrough and production-upgrade discussion distinguish this completed synthetic portfolio project from a confidential-data production service.

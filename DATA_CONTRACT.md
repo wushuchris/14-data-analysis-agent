@@ -1,6 +1,6 @@
 # Data contract
 
-Status: typed schemas and dataset preparation implemented; file parsing and analytical tools follow.
+Status: typed schemas, dataset preparation, analytical tools, and reporting are implemented. The public demo accepts bundled synthetic scenarios only; external file ingestion is outside this version.
 
 All fixtures and demonstration records are synthetic.
 
@@ -46,4 +46,4 @@ Opening date and region join request observations to workload records. This is a
 - Boolean counts, numeric strings, nonfinite staffing, unknown enums, naive timestamps, and extra fields are rejected. Dates and aware timestamps are explicitly parsed; classifications are not guessed.
 - Original records are preserved. Transformations and inclusion/exclusion counts accompany results.
 
-Bundled demo periods will be January through March 2026. Inputs must declare their coverage; lack of observations alone does not prove complete collection or zero workload.
+Bundled demo periods are January through March 2026. Inputs must declare their coverage; lack of observations alone does not prove complete collection or zero workload.
