@@ -75,7 +75,7 @@ def main():
     scenario, question, comparison = st.session_state["_demo_selection"]
     report = result.report
     st.caption(f"Displayed analysis: {SCENARIOS[scenario].label} · {comparison} · {QUESTIONS[question]}")
-    st.info(SCENARIOS[scenario].description)
+    st.info("Scenario setup (January → February): " + SCENARIOS[scenario].description)
     if st.session_state["_demo_ai_requested"]:
         st.caption(f"AI requested · planning: {result.planning_source} · findings: {result.findings_source} "
                    f"· {result.model_calls} model calls")

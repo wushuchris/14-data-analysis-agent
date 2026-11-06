@@ -201,3 +201,12 @@ def test_live_auth_failure_regression_keeps_report_and_safe_code(monkeypatch, fa
     assert result.fallback_codes == (failure_code,)
     assert [m.value for m in at.metric] == ["16.00 hours", "32.00 hours", "+16.00 hours"]
     assert any("AI fallback codes: " + failure_code in m.value for m in at.markdown)
+
+
+def test_live_alternate_period_labels_fixture_setup_separately_from_result():
+    at = submit(app(), comparison="February → March")
+    assert not at.exception
+    assert [m.value for m in at.metric] == ["32.00 hours", "32.00 hours", "+0.00 hours"]
+    assert any("Scenario setup (January → February):" in message.value for message in at.info)
+    assert any("Displayed analysis: Mix and handling change · February → March" in c.value for c in at.caption)
+    assert any("Average resolution time was unchanged." in m.value for m in at.markdown)
