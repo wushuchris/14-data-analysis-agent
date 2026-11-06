@@ -24,6 +24,23 @@ def request(**overrides):
     return ModelRequest(**values)
 
 
+
+def finding_request():
+    from service_analysis.demo_data import load_scenario
+    from service_analysis.analysis import Period
+    from service_analysis.model_adapter import AnalysisRequest, run_assisted_analysis
+    from service_analysis.findings import build_evidence_catalog
+    selected = AnalysisRequest(question="drivers",
+        baseline=Period(start="2026-01-01", end="2026-01-31"),
+        comparison=Period(start="2026-02-01", end="2026-02-28"),
+        opening_period=Period(start="2026-02-01", end="2026-02-28"))
+    result = run_assisted_analysis(load_scenario("combined"), selected)
+    payload = {"request": selected.model_dump(mode="json"),
+               "evidence":[f.model_dump(mode="json") for f in build_evidence_catalog(result.execution)]}
+    return request(purpose="findings", payload_json=json.dumps(payload),
+        response_schema_json=json.dumps(FindingsProposal.model_json_schema()))
+
+
 def completion(content='{"steps":[]}', finish="stop", **message_fields):
     return json.dumps({"choices": [{"finish_reason": finish, "message": {
         "content": content, **message_fields}}]}).encode()
@@ -277,7 +294,7 @@ def test_repeated_model_rounds_release_connections(monkeypatch):
 def test_finding_http_failure_category_does_not_expose_generated_text(monkeypatch, status, body, expected):
     instance = transport(monkeypatch, status=status, body=json.dumps(body).encode())
     with pytest.raises(AdapterError) as error:
-        instance.complete(request(purpose="findings"))
+        instance.complete(finding_request())
     assert str(error.value) == expected
     assert "synthetic" not in str(error.value)
     assert len(instance._test_adapter.calls) == 1
@@ -299,3 +316,53 @@ def test_numeric_union_with_other_constraints_is_not_widened():
 def test_numeric_union_does_not_widen_an_existing_integer_constraint():
     original = {"type":"integer","anyOf":[{"type":"integer"},{"type":"number"}]}
     assert provider_schema(original) == original
+
+
+def test_finding_wire_selects_short_ids_and_application_supplies_numbers(monkeypatch):
+    instance = transport(monkeypatch, body=completion(json.dumps({
+        "findings":[{"evidence_id":"E1","investigation":"none"}]})))
+    model_request = finding_request()
+    result = instance.complete(model_request)
+    draft = json.loads(result.text)["findings"][0]
+    fact = next(f for f in json.loads(model_request.payload_json)["evidence"] if f["value"] is not None)
+    assert draft["reference"] == fact["reference"] and draft["claimed_value"] == fact["value"]
+    body = json.loads(instance._test_adapter.calls[0][0].body)
+    assert body["response_format"]["json_schema"]["name"] == "analysis_finding_selection"
+    schema = body["response_format"]["json_schema"]["schema"]
+    properties = schema["$defs"]["_FindingChoice"]["properties"]
+    assert set(properties) == {"evidence_id", "investigation"}
+    assert properties["evidence_id"]["enum"][0] == "E1"
+    wire_facts = json.loads(body["messages"][1]["content"])["evidence"]
+    assert all("reference" not in f and "result_id" not in f for f in wire_facts)
+
+
+def test_invalid_selections_cannot_override_values_and_keep_good_items(monkeypatch):
+    instance = transport(monkeypatch, body=completion(json.dumps({"findings":[
+        {"evidence_id":"E1","investigation":"none"},
+        {"evidence_id":"E1","investigation":"none","claimed_value":999},
+        {"evidence_id":"unknown","investigation":"none"}]})))
+    drafts = json.loads(instance.complete(finding_request()).text)["findings"]
+    assert "reference" in drafts[0]
+    assert drafts[1:] == [{"invalid_selection":True},{"invalid_selection":True}]
+    assert "999" not in json.dumps(drafts)
+
+
+def test_selection_transport_runs_through_real_plan_and_evidence_verifier(monkeypatch):
+    from service_analysis.demo_data import load_scenario
+    from service_analysis.analysis import Period
+    from service_analysis.model_adapter import AnalysisRequest, run_assisted_analysis
+    from service_analysis.planning import deterministic_plan
+    jan = Period(start="2026-01-01", end="2026-01-31")
+    feb = Period(start="2026-02-01", end="2026-02-28")
+    plan = deterministic_plan("drivers", jan, feb, feb).model_dump(mode="json")
+    instance = transport(monkeypatch, sequence=[
+        (200, completion(json.dumps(plan))),
+        (200, completion(json.dumps({"findings":[{"evidence_id":"E1","investigation":"none"}]}))),
+    ])
+    selected = AnalysisRequest(question="drivers", baseline=jan, comparison=feb, opening_period=feb)
+    result = run_assisted_analysis(load_scenario("combined"), selected, instance, allow_followup=False)
+    assert result.planning_source == result.findings_source == "model"
+    assert result.report.status == result.requested_work_status == "complete"
+    assert result.model_calls == 2 and result.execution.tool_calls == 3
+    assert len(result.report.findings.accepted) == 1
+    assert not result.report.findings.quarantined and not result.fallback_codes

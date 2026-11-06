@@ -128,3 +128,7 @@ After the Requests transport change, one explicit AI run returned a model-select
 ## Live finding success and missing-analysis admission regression
 
 After numeric-schema normalization, an explicit live run returned both model planning and model findings in two calls, and the published mean-change finding matched +16 hours. The report remained partial because the proposed plan omitted a required analysis for the selected drivers question. That was correctly detected by the coverage check. The initial-plan admission boundary now requires all question-specific minimum calls before dispatch, with regression tests for successful correction and repeated omission falling back without executing the rejected plan. Final live validation must confirm both model stages and complete requested-work coverage after this change.
+
+## Compact evidence-selection wire contract
+
+A complete admitted plan still encountered a provider JSON-generation failure for numerical finding drafts. The HF wire contract now asks for short enumerated evidence IDs and investigation topics. Application code supplies original references and values from the typed evidence catalog before the existing verifier runs. Regression coverage exercises the real HTTP preparation, a full plan-to-selection-to-verifier run, rejection of numeric overrides and unknown IDs, and retention of valid selections alongside invalid items. This is not a relaxation of evidence checks; it removes numerical generation authority from this provider wire format.

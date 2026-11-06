@@ -240,3 +240,9 @@ Live model proposals are limited to four findings in both the response schema an
 ### Question-specific plan admission
 
 The application sends each question's minimum required analytical calls in the model context. An initial or corrected initial plan must include all of them before dispatch. A missing overall comparison or omitted required analysis is rejected, with at most one correction; repeated omission uses the existing deterministic fallback before any tool executes. Models may choose order, dependencies, and additional approved analyses within the six-step limit. Completed-plan coverage is still checked after execution so blocked or failed required tools keep the report partial.
+
+### Model selects evidence; application owns numbers
+
+The HF findings wire format asks the model for at most four short, request-local evidence IDs and approved investigation topics. Its JSON schema enumerates only selectable, defined facts. The application resolves those selections to the original typed evidence references and exact computed values, then sends the resulting drafts through the existing independent verifier. The model cannot override values or supply observation prose through this format. Unknown IDs or malformed items keep their positions as invalid drafts for normal quarantine; valid items can continue. Underlying evidence identities and exported reports retain their existing provenance. The provider-neutral draft interface remains unchanged.
+
+This smaller generation contract addresses live provider JSON-generation failures while preserving numerical authority in application code. The public audit records model-selected findings; their numbers and rendered observations are still application-derived.

@@ -5,7 +5,10 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.auth import AuthBase
 
-from service_analysis.model_adapter import AdapterError, ModelRequest, ModelResponse
+from pydantic import Field
+from service_analysis.schemas import Contract
+from service_analysis.findings import EvidenceFact, Topic
+from service_analysis.model_adapter import AdapterError, ModelRequest, ModelResponse, MAX_MODEL_FINDINGS
 
 ENDPOINT = "https://router.huggingface.co/v1/chat/completions"
 MODEL = "openai/gpt-oss-20b:groq"
@@ -119,6 +122,70 @@ def _http_error_code(status, raw):
         return fallback
 
 
+
+class _FindingChoice(Contract):
+    evidence_id: str = Field(strict=True)
+    investigation: Topic = "none"
+
+
+class _FindingChoices(Contract):
+    findings: tuple[_FindingChoice, ...] = Field(max_length=MAX_MODEL_FINDINGS)
+
+
+def _finding_wire(payload):
+    """Project trusted aggregate evidence into short, request-local choices."""
+    evidence = payload.get("evidence")
+    if not isinstance(evidence, list) or len(evidence) > 128:
+        raise ValueError("bounded evidence required")
+    lookup, choices = {}, []
+    for raw in evidence:
+        fact = EvidenceFact.model_validate(raw)
+        if fact.value is None:
+            continue
+        label = "E" + str(len(lookup) + 1)
+        lookup[label] = fact
+        choices.append({
+            "evidence_id": label, "metric": fact.reference.metric, "group": fact.reference.group,
+            "value": fact.value, "units": fact.units,
+            "periods": [p.model_dump(mode="json") for p in fact.periods],
+            "selection": fact.selection, "sample_sizes": fact.sample_sizes,
+            "population_sizes": fact.population_sizes,
+            "classification_exclusions": fact.excluded_classification_counts,
+            "sample_unit": fact.sample_unit, "warnings": fact.warnings,
+        })
+    if not lookup:
+        raise ValueError("selectable evidence required")
+    schema = provider_schema(_FindingChoices.model_json_schema())
+    schema["$defs"]["_FindingChoice"]["properties"]["evidence_id"]["enum"] = list(lookup)
+    wire_payload = {**payload, "evidence": choices,
+                    "undefined_evidence_omitted": len(evidence) - len(lookup)}
+    return schema, wire_payload, lookup
+
+
+def _finding_drafts(text, lookup):
+    """Resolve choices to original facts; ordinary verification still decides."""
+    envelope = _json(text)
+    if (not isinstance(envelope, dict) or set(envelope) != {"findings"}
+            or not isinstance(envelope["findings"], list)
+            or len(envelope["findings"]) > MAX_MODEL_FINDINGS):
+        raise ValueError("bounded finding selection envelope required")
+    drafts = []
+    for raw in envelope["findings"]:
+        try:
+            choice = _FindingChoice.model_validate(raw)
+            fact = lookup.get(choice.evidence_id)
+            if fact is None:
+                raise ValueError("unknown evidence selection")
+        except (ValueError, TypeError):
+            # Preserve the item's position for the existing per-item quarantine,
+            # without retaining model text or fabricating an evidence reference.
+            drafts.append({"invalid_selection": True})
+        else:
+            drafts.append({"reference": fact.reference.model_dump(mode="json"),
+                           "claimed_value": fact.value, "investigation": choice.investigation})
+    return json.dumps({"findings": drafts}, allow_nan=False)
+
+
 class _Bearer(AuthBase):
     """Keep the application credential authoritative over ambient netrc auth."""
     def __init__(self, token):
@@ -205,15 +272,32 @@ class HFRouterTransport:
             schema = provider_schema(_json(request.response_schema_json))
             if schema.get("type") != "object":
                 raise ValueError("root object required")
-            _json(request.payload_json)
+            payload = _json(request.payload_json)
+            instruction = request.instruction
+            wire_payload = request.payload_json
+            selection_lookup = None
+            schema_name = "analysis_proposal"
+            if request.purpose == "findings":
+                schema, selected_payload, selection_lookup = _finding_wire(payload)
+                wire_payload = json.dumps(selected_payload, allow_nan=False)
+                schema_name = "analysis_finding_selection"
+                instruction = instruction.replace(
+                    "copy the supplied result_id, metric, and group exactly.",
+                    "use only the supplied short evidence_id labels.",
+                )
+                instruction += (
+                    " For this finding-selection wire format, return only short evidence_id labels "
+                    "and investigation topics. The application fills original references and exact "
+                    "numbers. Do not return claimed_value, full references, or observation prose."
+                )
             body = json.dumps({
                 "model": MODEL,
                 "messages": [
-                    {"role": "system", "content": request.instruction},
-                    {"role": "user", "content": request.payload_json},
+                    {"role": "system", "content": instruction},
+                    {"role": "user", "content": wire_payload},
                 ],
                 "response_format": {"type": "json_schema", "json_schema": {
-                    "name": "analysis_proposal", "strict": True, "schema": schema,
+                    "name": schema_name, "strict": True, "schema": schema,
                 }},
                 "max_tokens": request.maximum_output_tokens,
                 "temperature": 0,
@@ -253,6 +337,8 @@ class HFRouterTransport:
                 raise ValueError("missing content")
             if len(text.encode("utf-8")) > 32768:
                 raise AdapterError("HF_RESPONSE_TOO_LARGE")
+            if finish == "stop" and selection_lookup is not None:
+                text = _finding_drafts(text, selection_lookup)
             return ModelResponse(text=text, finish_reason=finish)
         except AdapterError:
             raise
