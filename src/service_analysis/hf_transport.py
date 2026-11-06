@@ -1,8 +1,9 @@
 """Fixed Hugging Face router transport; no automatic retries or redirects."""
 import json
 import os
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, HTTPRedirectHandler, build_opener
+import requests
+from requests.adapters import HTTPAdapter
+from requests.auth import AuthBase
 
 from service_analysis.model_adapter import AdapterError, ModelRequest, ModelResponse
 
@@ -59,15 +60,14 @@ def provider_schema(schema):
 
 
 
-def _http_error_code(error):
+def _http_error_code(status, raw):
     """Return only an application-owned category; never retain provider text."""
     fallback = {401: "HF_AUTH_FAILED_HTTP_401", 403: "HF_AUTH_FAILED_HTTP_403",
                 402: "HF_CREDITS_UNAVAILABLE", 429: "HF_RATE_LIMITED"}.get(
-                    error.code, "HF_HTTP_FAILED")
-    if error.code != 403:
+                    status, "HF_HTTP_FAILED")
+    if status != 403:
         return fallback
     try:
-        raw = error.read(4097)
         if len(raw) > 4096:
             return fallback
         text = raw.decode("utf-8")
@@ -100,45 +100,76 @@ def _http_error_code(error):
         return fallback
 
 
-class _NoRedirect(HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
+class _Bearer(AuthBase):
+    """Keep the application credential authoritative over ambient netrc auth."""
+    def __init__(self, token):
+        self._token = token
+
+    def __call__(self, request):
+        request.headers["Authorization"] = "Bearer " + self._token
+        return request
+
+
+def _bounded_body(response, limit):
+    data = bytearray()
+    for chunk in response.iter_content(chunk_size=4096):
+        if chunk:
+            data.extend(chunk[:max(0, limit + 1 - len(data))])
+        if len(data) > limit:
+            break
+    return bytes(data)
+
+
+class _FixedEndpointSession(requests.Session):
+    def get_redirect_target(self, response):
+        # Do not prepare redirects or preload their response bodies.
         return None
 
 
 class HFRouterTransport:
-    """Backend-only token; synchronous socket timeout, not a hard wall deadline.
+    """Fixed Requests client with zero retries and redirects disabled.
 
-    urllib does not retry HTTP requests. Redirects are rejected so the bearer
-    credential cannot be forwarded to a different endpoint. DNS resolution and
-    a slow streaming body can outlast the per-blocking-operation socket timeout;
-    production would need a worker-level deadline as well.
+    Socket timeouts bound blocking operations, not the whole wall-clock run.
+    TLS verification and normal runtime proxy settings remain enabled.
     """
     def __init__(self):
         token = os.environ.get("HF_TOKEN", "").strip()
         if not token or any(char.isspace() for char in token):
             raise AdapterError("HF_TOKEN_UNAVAILABLE")
-        self._token = token
-        self._opener = build_opener(_NoRedirect())
+        self._auth = _Bearer(token)
+        self._session = _FixedEndpointSession()
+        self._session.mount("https://", HTTPAdapter(max_retries=0))
+
+    def _exchange(self, method, url, timeout, limit, body=None):
+        try:
+            with self._session.request(method, url, data=body, auth=self._auth,
+                    headers={"Content-Type": "application/json", "Accept": "application/json"},
+                    timeout=(timeout, timeout), stream=True, allow_redirects=False) as response:
+                status = response.status_code
+                raw = _bounded_body(response, limit if status == 200 else 4096)
+                return status, raw
+        except requests.exceptions.Timeout:
+            raise TimeoutError("HF_SOCKET_TIMEOUT") from None
+        except (requests.exceptions.RequestException, OSError, ValueError):
+            raise AdapterError("HF_NETWORK_FAILED") from None
+        finally:
+            # Release connection pools after every exchange, including failures.
+            self._session.close()
 
     def _credential_validity(self, timeout):
-        """Non-inference identity check; retain no identity or token metadata."""
-        probe = Request("https://huggingface.co/api/whoami-v2", method="GET",
-            headers={"Authorization": "Bearer " + self._token, "Accept": "application/json"})
+        """One non-inference GET; retain no identity or token metadata."""
         try:
-            with self._opener.open(probe, timeout=min(timeout, 5)) as response:
-                raw = response.read(16385)
-            if len(raw) > 16384:
+            status, raw = self._exchange("GET", "https://huggingface.co/api/whoami-v2",
+                                         min(timeout, 5), 16384)
+            if status == 401:
+                return False
+            if status != 200 or len(raw) > 16384:
                 return None
             data = _json(raw.decode("utf-8"))
             if (isinstance(data, dict) and data.get("type") == "user"
                     and isinstance(data.get("auth"), dict)
                     and data["auth"].get("type") == "access_token"):
                 return True
-        except HTTPError as error:
-            rejected = error.code == 401
-            error.close()
-            if rejected:
-                return False
         except Exception:
             pass
         return None
@@ -172,31 +203,18 @@ class HFRouterTransport:
             }, allow_nan=False).encode("utf-8")
         except (ValueError, TypeError, RecursionError, AttributeError):
             raise AdapterError("HF_REQUEST_INVALID") from None
-        wire_request = Request(ENDPOINT, data=body, method="POST", headers={
-            "Authorization": "Bearer " + self._token,
-            "Content-Type": "application/json", "Accept": "application/json",
-        })
-        try:
-            with self._opener.open(wire_request, timeout=request.timeout_seconds) as response:
-                raw = response.read(MAX_WIRE_BYTES + 1)
-        except HTTPError as exc:
-            code = _http_error_code(exc)
-            exc.close()
+
+        status, raw = self._exchange("POST", ENDPOINT, request.timeout_seconds,
+                                     MAX_WIRE_BYTES, body)
+        if status != 200:
+            code = _http_error_code(status, raw)
             if code == "HF_AUTH_FAILED_HTTP_403":
                 validity = self._credential_validity(request.timeout_seconds)
                 if validity is True:
                     code = "HF_CREDENTIAL_VALID_INFERENCE_FORBIDDEN"
                 elif validity is False:
                     code = "HF_RUNTIME_CREDENTIAL_REJECTED"
-            raise AdapterError(code) from None
-        except TimeoutError:
-            raise TimeoutError("HF_SOCKET_TIMEOUT") from None
-        except URLError as exc:
-            if isinstance(exc.reason, TimeoutError):
-                raise TimeoutError("HF_SOCKET_TIMEOUT") from None
-            raise AdapterError("HF_NETWORK_FAILED") from None
-        except (OSError, ValueError):
-            raise AdapterError("HF_NETWORK_FAILED") from None
+            raise AdapterError(code)
         if len(raw) > MAX_WIRE_BYTES:
             raise AdapterError("HF_RESPONSE_TOO_LARGE")
         try:

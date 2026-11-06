@@ -1,12 +1,13 @@
 """No inference credentials, live network, or credits used by these tests."""
 import io
 import json
-from urllib.error import HTTPError, URLError
-from urllib.request import Request
+import requests
+from requests import Response
+from requests.adapters import HTTPAdapter
 
 import pytest
 from service_analysis.hf_transport import (
-    ENDPOINT, MODEL, MAX_WIRE_BYTES, HFRouterTransport, _NoRedirect, provider_schema,
+    ENDPOINT, MODEL, MAX_WIRE_BYTES, HFRouterTransport, provider_schema,
 )
 from service_analysis.model_adapter import (
     AdapterError, ModelRequest, FindingsProposal, FollowupProposal,
@@ -28,35 +29,58 @@ def completion(content='{"steps":[]}', finish="stop", **message_fields):
         "content": content, **message_fields}}]}).encode()
 
 
-class FakeOpener:
-    def __init__(self, body=None, error=None):
+class RecordingAdapter(HTTPAdapter):
+    """Exercise real Requests preparation without opening a network socket."""
+    def __init__(self, body=None, status=200, error=None, sequence=None):
+        super().__init__(max_retries=0)
         self.body = completion() if body is None else body
+        self.status = status
         self.error = error
+        self.sequence = list(sequence or [])
         self.calls = []
+        self.close_count = 0
 
-    def open(self, req, timeout):
-        self.calls.append((req, timeout))
+    def send(self, wire, **kwargs):
+        self.calls.append((wire, kwargs["timeout"]))
+        assert kwargs["stream"] is True and kwargs["verify"] is True
         if self.error:
             raise self.error
-        return io.BytesIO(self.body)
+        status, body = self.sequence.pop(0) if self.sequence else (self.status, self.body)
+        result = Response()
+        result.status_code = status
+        result.raw = io.BytesIO(body)
+        result.url = wire.url
+        result.request = wire
+        if 300 <= status < 400:
+            result.headers["Location"] = "https://another.example/blocked"
+        return result
+
+    def close(self):
+        self.close_count += 1
+        super().close()
 
 
 def transport(monkeypatch, **kwargs):
     monkeypatch.setenv("HF_TOKEN", "synthetic-test-credential")
     instance = HFRouterTransport()
-    instance._opener = FakeOpener(**kwargs)
+    adapter = RecordingAdapter(**kwargs)
+    instance._session.mount("https://", adapter)
+    instance._test_adapter = adapter
     return instance
 
 
 def test_fixed_route_and_controls(monkeypatch):
     instance = transport(monkeypatch)
     assert instance.complete(request()).finish_reason == "stop"
-    wire, timeout = instance._opener.calls[0]
-    assert wire.full_url == ENDPOINT
+    wire, timeout = instance._test_adapter.calls[0]
+    assert wire.url == ENDPOINT
     assert wire.method == "POST"
-    assert timeout == 20
-    assert wire.get_header("Authorization") == "Bearer synthetic-test-credential"
-    body = json.loads(wire.data)
+    assert wire.headers["User-Agent"].startswith("python-requests/")
+    assert instance._test_adapter.max_retries.total == 0
+    assert instance._test_adapter.close_count == 1
+    assert timeout == (20, 20)
+    assert wire.headers.get("Authorization") == "Bearer synthetic-test-credential"
+    body = json.loads(wire.body)
     assert body["model"] == MODEL
     assert body["max_tokens"] == 2000
     assert body["stream"] is False
@@ -64,7 +88,7 @@ def test_fixed_route_and_controls(monkeypatch):
     assert body["response_format"]["json_schema"]["strict"] is True
     assert [item["role"] for item in body["messages"]] == ["system", "user"]
     assert "synthetic-test-credential" not in repr(instance)
-    assert "synthetic-test-credential" not in wire.data.decode()
+    assert "synthetic-test-credential" not in wire.body.decode()
 
 
 @pytest.mark.parametrize("contract", [AnalysisPlan, FindingsProposal, FollowupProposal])
@@ -114,24 +138,23 @@ def test_missing_or_invalid_secret(monkeypatch, token):
     (402,"HF_CREDITS_UNAVAILABLE"), (429,"HF_RATE_LIMITED"),
     (503,"HF_HTTP_FAILED"), (307,"HF_HTTP_FAILED"), (400,"HF_HTTP_FAILED")])
 def test_http_failures_sanitized_and_not_retried(monkeypatch, status, code):
-    instance = transport(monkeypatch, error=HTTPError(ENDPOINT, status,
-        "private provider diagnostics", {}, io.BytesIO(b'{"error":"private provider body"}')))
+    instance = transport(monkeypatch, status=status, body=b'{"error":"private provider body"}')
     with pytest.raises(AdapterError) as error:
         instance.complete(request())
     assert str(error.value) == code
-    assert len([req for req, _ in instance._opener.calls if req.method == "POST"]) == 1
+    assert len([req for req, _ in instance._test_adapter.calls if req.method == "POST"]) == 1
 
 
-@pytest.mark.parametrize("error", [TimeoutError("private"), URLError(TimeoutError("private"))])
+@pytest.mark.parametrize("error", [requests.exceptions.ConnectTimeout("private"), requests.exceptions.ReadTimeout("private")])
 def test_timeout_no_retry(monkeypatch, error):
     instance = transport(monkeypatch, error=error)
     with pytest.raises(TimeoutError, match="HF_SOCKET_TIMEOUT"):
         instance.complete(request())
-    assert len([req for req, _ in instance._opener.calls if req.method == "POST"]) == 1
+    assert len([req for req, _ in instance._test_adapter.calls if req.method == "POST"]) == 1
 
 
 def test_network_error_sanitized(monkeypatch):
-    instance = transport(monkeypatch, error=URLError("private network diagnostics"))
+    instance = transport(monkeypatch, error=requests.exceptions.ConnectionError("private network diagnostics"))
     with pytest.raises(AdapterError, match="HF_NETWORK_FAILED"):
         instance.complete(request())
 
@@ -167,12 +190,16 @@ def test_invalid_request_no_network(monkeypatch, values, code):
     instance = transport(monkeypatch)
     with pytest.raises(AdapterError, match=code):
         instance.complete(request(**values))
-    assert not instance._opener.calls
+    assert not instance._test_adapter.calls
 
 
-def test_redirect_is_never_followed():
-    assert _NoRedirect().redirect_request(Request(ENDPOINT), None, 307, "redirect",
-                                         {}, "https://another.example") is None
+def test_redirect_is_never_followed(monkeypatch):
+    instance = transport(monkeypatch, status=307, body=b"synthetic redirect")
+    with pytest.raises(AdapterError, match="HF_HTTP_FAILED"):
+        instance.complete(request())
+    assert len(instance._test_adapter.calls) == 1
+    assert instance._test_adapter.calls[0][0].url == ENDPOINT
+    assert instance._session.get_redirect_target(None) is None
 
 
 @pytest.mark.parametrize("body,expected", [
@@ -189,12 +216,11 @@ def test_redirect_is_never_followed():
     (b"x" * 4097, "HF_AUTH_FAILED_HTTP_403"),
 ])
 def test_forbidden_diagnostic_is_bounded_sanitized_and_never_retried(monkeypatch, body, expected):
-    instance = transport(monkeypatch, error=HTTPError(
-        ENDPOINT, 403, "synthetic private diagnostic", {}, io.BytesIO(body)))
+    instance = transport(monkeypatch, status=403, body=body)
     with pytest.raises(AdapterError) as error:
         instance.complete(request())
     assert str(error.value) == expected
-    assert len([req for req, _ in instance._opener.calls if req.method == "POST"]) == 1
+    assert len([req for req, _ in instance._test_adapter.calls if req.method == "POST"]) == 1
     assert "synthetic" not in str(error.value)
 
 
@@ -206,25 +232,33 @@ def test_forbidden_diagnostic_is_bounded_sanitized_and_never_retried(monkeypatch
     ({"type":"user"}, 200, "HF_AUTH_FAILED_HTTP_403"),
 ])
 def test_forbidden_identity_probe_reveals_only_validity(monkeypatch, probe_body, probe_status, expected):
-    instance = transport(monkeypatch)
-    class ProbeOpener:
-        def __init__(self):
-            self.calls = []
-        def open(self, req, timeout):
-            self.calls.append((req, timeout))
-            if req.method == "POST":
-                raise HTTPError(ENDPOINT, 403, "synthetic private diagnostic", {},
-                                io.BytesIO(b'{"error":"unknown denial"}'))
-            assert req.full_url == "https://huggingface.co/api/whoami-v2"
-            assert timeout <= 5
-            assert req.get_header("Authorization") == "Bearer synthetic-test-credential"
-            if probe_status != 200:
-                raise HTTPError(req.full_url, probe_status, "synthetic private identity error",
-                                {}, io.BytesIO(b"synthetic private body"))
-            return io.BytesIO(json.dumps(probe_body).encode())
-    instance._opener = ProbeOpener()
+    instance = transport(monkeypatch, sequence=[
+        (403, b'{"error":"unknown denial"}'),
+        (probe_status, json.dumps(probe_body).encode()),
+    ])
     with pytest.raises(AdapterError) as error:
         instance.complete(request())
     assert str(error.value) == expected
-    assert [req.method for req, _ in instance._opener.calls] == ["POST", "GET"]
+    assert [wire.method for wire, _ in instance._test_adapter.calls] == ["POST", "GET"]
+    probe, timeout = instance._test_adapter.calls[1]
+    assert probe.url == "https://huggingface.co/api/whoami-v2"
+    assert timeout == (5, 5)
+    assert probe.headers["Authorization"] == "Bearer synthetic-test-credential"
     assert "synthetic" not in str(error.value)
+
+
+def test_ambient_netrc_cannot_replace_runtime_credential(monkeypatch):
+    def forbidden_lookup(*args, **kwargs):
+        raise AssertionError("Ambient credentials must not be consulted")
+    monkeypatch.setattr(requests.sessions, "get_netrc_auth", forbidden_lookup)
+    instance = transport(monkeypatch)
+    instance.complete(request())
+    assert instance._test_adapter.calls[0][0].headers["Authorization"] == "Bearer synthetic-test-credential"
+
+
+def test_repeated_model_rounds_release_connections(monkeypatch):
+    instance = transport(monkeypatch)
+    for _ in range(3):
+        assert instance.complete(request()).finish_reason == "stop"
+    assert len(instance._test_adapter.calls) == 3
+    assert instance._test_adapter.close_count == 3

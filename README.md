@@ -201,7 +201,7 @@ MIT. See [LICENSE](LICENSE).
 
 ## Optional Hugging Face inference transport
 
-`HFRouterTransport()` reads `HF_TOKEN` from the backend environment and sends one POST per adapter call to the fixed Hugging Face chat-completions router. The selected model is `openai/gpt-oss-20b:groq`, a modest open model with provider-documented strict structured output. No separate Groq account/key or new runtime dependency is needed.
+`HFRouterTransport()` reads `HF_TOKEN` from the backend environment and sends one POST per adapter call to the fixed Hugging Face chat-completions router. The selected model is `openai/gpt-oss-20b:groq`, a modest open model with provider-documented strict structured output. No separate Groq account/key is needed. Requests supplies the HTTP client.
 
 The provider schema removes annotations/defaults, requires every object field, converts literal `const` to singleton `enum`, and encodes the discriminated tool union using `anyOf`. It preserves date formats, bounds, existing nullability, and closed objects. The original application schemas and evidence checks still decide acceptance. Provider JSON conformance never establishes analytical correctness.
 
@@ -224,3 +224,7 @@ Runtime diagnostics preserve safe HTTP status codes: `HF_AUTH_FAILED_HTTP_401` i
 For HTTP 403, a bounded 4 KiB error-body classifier recognizes only fixed permission/authorization/client-rejection categories; non-JSON responses are identified separately. The raw error body, account names, token metadata, and provider messages are neither returned nor logged. Unknown or oversized error bodies retain the generic safe HTTP status. Diagnostic parsing does not retry inference or grant permissions.
 
 For an otherwise unclassified HTTP 403, the transport makes one read-only, non-inference request to the fixed Hugging Face `whoami-v2` endpoint using the same backend credential. The five-second socket timeout and 16 KiB response cap bound this diagnostic. Only credential accepted/rejected/unknown is retained; identity fields, token labels, permission metadata, and response bodies never enter reports or logs. This probe does not retry inference, generate model output, or change account settings. A valid identity check does not prove permission to use a particular inference route.
+
+### HTTP client compatibility check
+
+The router transport uses Requests, following the documented Hugging Face REST integration. The HTTPS adapter has zero retries, redirects are disabled before response-body preparation, response streaming is bounded, and connection pools are released after each exchange. An explicit Bearer auth handler prevents ambient `.netrc` credentials from replacing the runtime secret while retaining standard TLS verification and runtime proxy configuration. Tests exercise real Requests request preparation with an in-memory HTTP adapter, including authentication, redirects, limits, timeouts, and safe error handling. This replaces the earlier low-level urllib network client; the model/schema and execution/evidence boundaries are unchanged. Live compatibility still requires a production check.

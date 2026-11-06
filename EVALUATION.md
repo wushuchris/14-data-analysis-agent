@@ -116,3 +116,7 @@ A regression test now exercises that failure through the Streamlit UI, checks a 
 ## Authentication diagnostic follow-up — November 6, 2026
 
 A bounded live check after a runtime-secret update still returned the grouped authentication-failure classification. The transport now distinguishes safe HTTP 401 and 403 status codes, with separate UI messages and regression coverage. This avoids repeatedly prescribing token replacement without knowing whether the route rejected credentials or denied authorization. No raw provider body, token, prompt, or response text is added to public diagnostics. Successful live model output remains pending.
+
+## Accepted credential with forbidden inference route — November 6, 2026
+
+A non-inference identity check accepted the runtime credential while the inference POST still returned HTTP 403. This rules out a wholly rejected token for that checked run; it does not certify all inference permissions or identify the exact route restriction. The HTTP client was changed from urllib networking to the documented Requests integration for a controlled compatibility check. Tests now exercise real request preparation through a fake HTTP adapter rather than simulating urllib openers. Provider text, identity fields, and token metadata remain excluded from public output. Successful live model behavior remains pending validation after this change.
