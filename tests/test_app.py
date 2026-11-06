@@ -176,6 +176,10 @@ def test_ai_exhaustion_remains_usable(monkeypatch):
     ("HF_AUTH_FAILED", "rejected the runtime inference credential"),
     ("HF_AUTH_FAILED_HTTP_401", "rejected the runtime inference credential (HTTP 401)"),
     ("HF_AUTH_FAILED_HTTP_403", "denied permission for this inference request (HTTP 403)"),
+    ("HF_RUNTIME_INFERENCE_PERMISSION_DENIED", "runtime credential lacks Inference Providers permission"),
+    ("HF_SERVICE_AUTHORIZATION_DENIED", "service returned an authorization denial"),
+    ("HF_UPSTREAM_CLIENT_REJECTED", "service rejected this client request"),
+    ("HF_FORBIDDEN_NON_JSON", "non-JSON forbidden response"),
 ])
 def test_live_auth_failure_regression_keeps_report_and_safe_code(monkeypatch, failure_code, message):
     import service_analysis.demo_inference as demo

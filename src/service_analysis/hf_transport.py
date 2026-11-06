@@ -58,6 +58,48 @@ def provider_schema(schema):
     return result
 
 
+
+def _http_error_code(error):
+    """Return only an application-owned category; never retain provider text."""
+    fallback = {401: "HF_AUTH_FAILED_HTTP_401", 403: "HF_AUTH_FAILED_HTTP_403",
+                402: "HF_CREDITS_UNAVAILABLE", 429: "HF_RATE_LIMITED"}.get(
+                    error.code, "HF_HTTP_FAILED")
+    if error.code != 403:
+        return fallback
+    try:
+        raw = error.read(4097)
+        if len(raw) > 4096:
+            return fallback
+        text = raw.decode("utf-8")
+        # Some infrastructure returns a non-JSON client rejection before the
+        # provider API runs. Report that category without publishing its body.
+        if text.strip().lower() == "error code: 1010":
+            return "HF_UPSTREAM_CLIENT_REJECTED"
+        try:
+            payload = _json(text)
+        except (ValueError, TypeError, RecursionError):
+            return "HF_FORBIDDEN_NON_JSON"
+        if not isinstance(payload, dict):
+            return fallback
+        detail = payload.get("error")
+        if isinstance(detail, dict):
+            message, code = detail.get("message"), detail.get("code")
+        else:
+            message, code = detail, payload.get("code")
+        if code == "inference_provider_permission_required":
+            return "HF_RUNTIME_INFERENCE_PERMISSION_DENIED"
+        if isinstance(message, str) and (
+            "does not have sufficient permissions to call inference providers" in message.lower()
+        ):
+            return "HF_RUNTIME_INFERENCE_PERMISSION_DENIED"
+        if code in ("permission_denied", "access_denied"):
+            return "HF_SERVICE_AUTHORIZATION_DENIED"
+        return fallback
+    except Exception:
+        # Diagnostic parsing must never replace or leak the original failure.
+        return fallback
+
+
 class _NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
@@ -115,9 +157,7 @@ class HFRouterTransport:
             with self._opener.open(wire_request, timeout=request.timeout_seconds) as response:
                 raw = response.read(MAX_WIRE_BYTES + 1)
         except HTTPError as exc:
-            code = {401: "HF_AUTH_FAILED_HTTP_401", 403: "HF_AUTH_FAILED_HTTP_403",
-                    402: "HF_CREDITS_UNAVAILABLE", 429: "HF_RATE_LIMITED"}.get(
-                        exc.code, "HF_HTTP_FAILED")
+            code = _http_error_code(exc)
             exc.close()
             raise AdapterError(code) from None
         except TimeoutError:

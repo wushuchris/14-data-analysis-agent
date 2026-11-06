@@ -115,7 +115,7 @@ def test_missing_or_invalid_secret(monkeypatch, token):
     (503,"HF_HTTP_FAILED"), (307,"HF_HTTP_FAILED"), (400,"HF_HTTP_FAILED")])
 def test_http_failures_sanitized_and_not_retried(monkeypatch, status, code):
     instance = transport(monkeypatch, error=HTTPError(ENDPOINT, status,
-        "private provider diagnostics", {}, io.BytesIO(b"private provider body")))
+        "private provider diagnostics", {}, io.BytesIO(b'{"error":"private provider body"}')))
     with pytest.raises(AdapterError) as error:
         instance.complete(request())
     assert str(error.value) == code
@@ -173,3 +173,26 @@ def test_invalid_request_no_network(monkeypatch, values, code):
 def test_redirect_is_never_followed():
     assert _NoRedirect().redirect_request(Request(ENDPOINT), None, 307, "redirect",
                                          {}, "https://another.example") is None
+
+
+@pytest.mark.parametrize("body,expected", [
+    (b'{"error":"This authentication method does not have sufficient permissions to call Inference Providers on behalf of a synthetic user."}',
+     "HF_RUNTIME_INFERENCE_PERMISSION_DENIED"),
+    (b'{"error":{"code":"inference_provider_permission_required","message":"synthetic private diagnostic"}}',
+     "HF_RUNTIME_INFERENCE_PERMISSION_DENIED"),
+    (b'{"error":{"code":"permission_denied","message":"synthetic private diagnostic"}}',
+     "HF_SERVICE_AUTHORIZATION_DENIED"),
+    (b"error code: 1010", "HF_UPSTREAM_CLIENT_REJECTED"),
+    (b"<html>synthetic forbidden page</html>", "HF_FORBIDDEN_NON_JSON"),
+    (b'{"error":"unknown synthetic diagnostic"}', "HF_AUTH_FAILED_HTTP_403"),
+    (b'{"error":[]}', "HF_AUTH_FAILED_HTTP_403"),
+    (b"x" * 4097, "HF_AUTH_FAILED_HTTP_403"),
+])
+def test_forbidden_diagnostic_is_bounded_sanitized_and_never_retried(monkeypatch, body, expected):
+    instance = transport(monkeypatch, error=HTTPError(
+        ENDPOINT, 403, "synthetic private diagnostic", {}, io.BytesIO(body)))
+    with pytest.raises(AdapterError) as error:
+        instance.complete(request())
+    assert str(error.value) == expected
+    assert len(instance._opener.calls) == 1
+    assert "synthetic" not in str(error.value)
