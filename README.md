@@ -236,3 +236,7 @@ With the runtime token, model, and Groq configuration unchanged, replacing urlli
 ### Bounded finding generation
 
 Live model proposals are limited to four findings in both the response schema and the application batch guard; the general evidence-verification API retains its separate 20-item capacity. Existing evidence references must be copied exactly, and the current task is explicit in the instruction. The provider schema encodes the exactly equivalent union of JSON integer and number as a single number type, preserving the original strict application validation. This narrows generation work without reducing evidence or numeric verification. An oversized model batch is withheld and deterministic findings remain available.
+
+### Question-specific plan admission
+
+The application sends each question's minimum required analytical calls in the model context. An initial or corrected initial plan must include all of them before dispatch. A missing overall comparison or omitted required analysis is rejected, with at most one correction; repeated omission uses the existing deterministic fallback before any tool executes. Models may choose order, dependencies, and additional approved analyses within the six-step limit. Completed-plan coverage is still checked after execution so blocked or failed required tools keep the report partial.

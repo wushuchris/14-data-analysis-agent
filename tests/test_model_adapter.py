@@ -237,12 +237,16 @@ def test_evidence_cap_disclosed():
     assert result.findings_source == "deterministic"
 
 
-def test_omitted_required_segments_cannot_claim_complete():
-    transport = ScriptedTransport(response(plan()), findings)
+def test_omitted_required_segments_are_corrected_before_execution():
+    transport = ScriptedTransport(response(plan()), response(plan("segments")), findings)
     result = run_assisted_analysis(dataset(), request("segments"), transport, allow_followup=False)
     assert result.execution.status == "completed"
-    assert result.requested_work_status == "partial" and result.report.status == "partial"
-    assert "REQUESTED_ANALYSES_INCOMPLETE" in result.report.notices
+    assert result.requested_work_status == result.report.status == "complete"
+    assert result.execution.tool_calls == 3 and result.execution.correction_used
+    assert [r.purpose for r in transport.requests] == ["initial_plan", "correction", "findings"]
+    correction = json.loads(transport.requests[1].payload_json)
+    assert correction["rejection_code"] == "MISSING_REQUIRED_ANALYSES"
+    assert correction["prior_steps"] == []
 
 
 def test_invalid_application_request_never_calls_transport():
@@ -278,3 +282,30 @@ def test_finding_generation_budget_is_enforced_before_publication():
     assert "MODEL_FINDING_LIMIT_EXCEEDED" in result.fallback_codes
     assert result.report.findings.accepted
     assert result.model_calls == 2
+
+
+def test_live_driver_omission_regression_requires_decomposition_before_dispatch():
+    from service_analysis.demo_data import load_scenario
+    full = deterministic_plan("drivers", JAN, FEB, FEB).model_dump(mode="json")
+    transport = ScriptedTransport(response(plan()), response(full), findings)
+    selected = AnalysisRequest(question="drivers", baseline=JAN, comparison=FEB, opening_period=FEB)
+    result = run_assisted_analysis(load_scenario("combined"), selected, transport, allow_followup=False)
+    assert result.planning_source == result.findings_source == "model"
+    assert result.report.status == result.requested_work_status == "complete"
+    assert result.execution.tool_calls == 3 and result.execution.correction_used
+    assert result.report.findings.accepted[0].evidence.value == 16
+    initial = json.loads(transport.requests[0].payload_json)
+    assert {call["operation"] for call in initial["required_calls"]} == {"compare", "decompose", "workload"}
+    correction = json.loads(transport.requests[1].payload_json)
+    assert correction["rejection_code"] == "MISSING_REQUIRED_ANALYSES"
+    assert correction["prior_steps"] == []
+
+
+def test_repeated_incomplete_plan_falls_back_without_executing_it():
+    transport = ScriptedTransport(response(plan()), response(plan()))
+    result = run_assisted_analysis(dataset(), request("segments"), transport, allow_followup=False)
+    assert result.planning_source == result.findings_source == "deterministic"
+    assert result.model_calls == 2 and result.execution.tool_calls == 3
+    assert result.attempted_execution.tool_calls == 0
+    assert result.report.status == "complete"
+    assert "MODEL_PLAN_REJECTED" in result.fallback_codes
