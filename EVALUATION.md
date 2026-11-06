@@ -1,6 +1,6 @@
 # Evaluation plan
 
-Status: schema, quality, summary/comparison, decomposition, workload, bounded execution, and structured finding verification, report, and chart tests implemented. Simulated model-adapter behavior is tested. Synthetic scenarios, opt-in AI controls, finite shared allowance, and simulated UI tests are implemented. Deployed deterministic behavior and live authentication-failure fallback have been checked; successful live model output remains blocked by runtime authentication.
+Status: deterministic calculations, planning/execution, evidence verification, reporting, synthetic scenarios, UI controls, and simulated transport failures are covered by automated tests. The November 6 default live AI check passed both model stages and complete requested-work coverage after 487 tests and container checks. Alternate production checks and final release/hygiene review remain pending.
 
 ## Known-answer scenarios
 
@@ -62,7 +62,7 @@ Report summaries link to verified findings; chart values and findings share cata
 
 Known-answer charts cover summary means, group changes, decomposition components, and correlations. Positive, negative, and zero changes use a zero-inclusive domain; correlation scales remain [-1, 1]. Undefined contributions and correlations have no bars. SVG tests verify XML structure, escaped text, accessible descriptions, and rejection of scope/unit/nonfinite tampering. A rendered negative-change decomposition was inspected for layout and signed-bar behavior.
 
-These are deterministic reports and standalone SVG charts. The default deployed presentation has been checked; final release still requires the alternate and successful live-model checks claimed by the demo.
+These are deterministic reports and standalone SVG charts. The default deployed presentation has been checked; the default live-model check passed as recorded below; final release still requires alternate production checks.
 
 ## Implemented simulated model coverage
 
@@ -111,24 +111,44 @@ Assess correctness, evidence traceability, appropriate uncertainty, business use
 
 The deployed default remained deterministic with zero model calls and the known +16 hour change. An explicit AI submission attempted one model call and received the sanitized `HF_AUTH_FAILED` code (HTTP 401/403 classification). There was no automatic retry. Approved calculations still ran deterministically: three tool calls, baseline 16 hours, comparison 32 hours, and +16 hours overall.
 
-A regression test now exercises that failure through the Streamlit UI, checks a specific authentication message and safe audit code, and verifies that the known-answer metrics survive. Transport and orchestration tests already cover authentication failures without exposing provider diagnostics. Successful live planning/findings and structured-output compatibility remain unverified until runtime credentials are accepted. Deployment authentication and inference authentication are separate checks.
+A regression test now exercises that failure through the Streamlit UI, checks a specific authentication message and safe audit code, and verifies that the known-answer metrics survive. Transport and orchestration tests already cover authentication failures without exposing provider diagnostics. At that stage successful live planning/findings and structured-output compatibility were unverified; the final November 6 record below supersedes that status. Deployment authentication and inference authentication are separate checks.
 
 ## Authentication diagnostic follow-up — November 6, 2026
 
-A bounded live check after a runtime-secret update still returned the grouped authentication-failure classification. The transport now distinguishes safe HTTP 401 and 403 status codes, with separate UI messages and regression coverage. This avoids repeatedly prescribing token replacement without knowing whether the route rejected credentials or denied authorization. No raw provider body, token, prompt, or response text is added to public diagnostics. Successful live model output remains pending.
+A bounded live check after a runtime-secret update still returned the grouped authentication-failure classification. The transport now distinguishes safe HTTP 401 and 403 status codes, with separate UI messages and regression coverage. This avoids repeatedly prescribing token replacement without knowing whether the route rejected credentials or denied authorization. No raw provider body, token, prompt, or response text is added to public diagnostics. Successful live model output was pending at this stage; see the final validation record below.
 
 ## Accepted credential with forbidden inference route — November 6, 2026
 
-A non-inference identity check accepted the runtime credential while the inference POST still returned HTTP 403. This rules out a wholly rejected token for that checked run; it does not certify all inference permissions or identify the exact route restriction. The HTTP client was changed from urllib networking to the documented Requests integration for a controlled compatibility check. Tests now exercise real request preparation through a fake HTTP adapter rather than simulating urllib openers. Provider text, identity fields, and token metadata remain excluded from public output. Successful live model behavior remains pending validation after this change.
+A non-inference identity check accepted the runtime credential while the inference POST still returned HTTP 403. This rules out a wholly rejected token for that checked run; it does not certify all inference permissions or identify the exact route restriction. The HTTP client was changed from urllib networking to the documented Requests integration for a controlled compatibility check. Tests now exercise real request preparation through a fake HTTP adapter rather than simulating urllib openers. Provider text, identity fields, and token metadata remain excluded from public output. Live behavior was pending at this stage; see the final validation record below.
 
 ## Live plan success with finding fallback — November 6, 2026
 
-After the Requests transport change, one explicit AI run returned a model-selected plan that passed validation, completed the requested analyses, and executed four approved tool calls. Baseline/comparison means remained 16/32 hours, with +16 total, +12 mix, and +4 within-category contributions. Two model calls were attempted; the findings call returned a provider HTTP failure, and the report used deterministic verified findings. The next bounded check must identify and address that separate failure before claiming successful end-to-end model planning and finding generation. HTTP diagnostics retain status and recognized failure categories only, including when a provider includes failed generated output in an error envelope.
+After the Requests transport change, one explicit AI run returned a model-selected plan that passed validation, completed the requested analyses, and executed four approved tool calls. Baseline/comparison means remained 16/32 hours, with +16 total, +12 mix, and +4 within-category contributions. Two model calls were attempted; the findings call returned a provider HTTP failure, and the report used deterministic verified findings. That separate finding failure was investigated before the successful final check below. HTTP diagnostics retain status and recognized failure categories only, including when a provider includes failed generated output in an error envelope.
 
 ## Live finding success and missing-analysis admission regression
 
-After numeric-schema normalization, an explicit live run returned both model planning and model findings in two calls, and the published mean-change finding matched +16 hours. The report remained partial because the proposed plan omitted a required analysis for the selected drivers question. That was correctly detected by the coverage check. The initial-plan admission boundary now requires all question-specific minimum calls before dispatch, with regression tests for successful correction and repeated omission falling back without executing the rejected plan. Final live validation must confirm both model stages and complete requested-work coverage after this change.
+After numeric-schema normalization, an explicit live run returned both model planning and model findings in two calls, and the published mean-change finding matched +16 hours. The report remained partial because the proposed plan omitted a required analysis for the selected drivers question. That was correctly detected by the coverage check. The initial-plan admission boundary now requires all question-specific minimum calls before dispatch, with regression tests for successful correction and repeated omission falling back without executing the rejected plan. The final check below confirms both model stages and complete requested-work coverage after this change.
 
 ## Compact evidence-selection wire contract
 
 A complete admitted plan still encountered a provider JSON-generation failure for numerical finding drafts. The HF wire contract now asks for short enumerated evidence IDs and investigation topics. Application code supplies original references and values from the typed evidence catalog before the existing verifier runs. Regression coverage exercises the real HTTP preparation, a full plan-to-selection-to-verifier run, rejection of numeric overrides and unknown IDs, and retention of valid selections alongside invalid items. This is not a relaxation of evidence checks; it removes numerical generation authority from this provider wire format.
+
+## Successful complete live AI validation — November 6, 2026
+
+Source commit: `b9cf18f136cdace39e1f4ece65252436647e2ebe`. Its GitHub workflow passed 487 tests, production container checks, and deployment before this browser check.
+
+| Check | Observed result |
+|---|---|
+| Synthetic scenario | Mix and handling change |
+| Question / periods | Drivers; January → February |
+| Planning / findings sources | Model / model |
+| Required analytical calls | Overall comparison, case-mix decomposition, workload association; all completed |
+| Execution / inference | Three reserved steps, three tool calls, two model calls |
+| Correction / fallback / quarantine | None |
+| Requested work / report | Complete / complete |
+| Baseline / comparison | 16 / 32 hours; 30 completed requests in each period |
+| Published mean-change finding | +16 hours; independently verified against computed evidence |
+
+The UI retained completed-request selection and association limitations. Finding selection came from the model; exact values and numerical observation text came from application code. This is one successful default production run, not an estimate of model reliability or validation of every alternate scenario. Remaining release gates include alternate production checks, public source/history hygiene, and final documentation/portfolio review.
+
+Lessons: HTTP 403 alone does not establish that a token is invalid; accepted identity and inference-route access are different observations. HTTP client and provider schema compatibility require bounded live checks. Admit the minimum question-specific analysis before dispatch. Let a model select useful evidence while application code owns computed values and publication. Meaningful live failures now have deterministic regression coverage.

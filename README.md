@@ -13,7 +13,7 @@ short_description: Verified analysis of synthetic service operations
 
 Understand changes in service-request resolution times through reproducible analysis and evidence-backed findings.
 
-**Status: typed inputs, data-quality preparation, and SQL-verified resolution summaries, period comparisons, reconciled case-mix decomposition, and workload association, plus bounded planning, execution, and structured finding verification, report assembly, and SVG charts implemented. A provider-neutral model boundary is implemented and tested with simulated responses. The Streamlit demo is deployed on Hugging Face through test-gated GitHub Actions. A fixed Hugging Face router transport is implemented with simulated HTTP tests; explicit AI mode and a finite shared allowance are implemented; a live model-selected plan has passed validation and completed the requested analysis. The live findings request failed at the provider HTTP boundary and used verified deterministic fallback; successful live finding generation remains pending.**
+**Status: analytical tools, bounded execution, verified findings, charts, and the deployed synthetic demo are implemented. On November 6, 2026, the default live AI run completed model planning and model-selected findings with all three required analyses, two model calls, and no fallback. The source commit passed 487 automated tests and container checks before deployment. Final release review, alternate production checks, public-repository hygiene, and portfolio updates remain pending; the agent is not yet marked complete.**
 
 [Explore the live synthetic demo](https://huggingface.co/spaces/FlyingNunchucks/14-data-analysis-agent).
 
@@ -23,12 +23,12 @@ Harborlight Service Operations is a fictional equipment-support company. Its ope
 
 > Resolution times increased this month. Where did the increase come from, and what should we investigate next?
 
-The planned agent answers:
+The agent answers:
 1. How have resolution times and completed-request volumes changed?
 2. Which categories and regions contribute to the change?
 3. Could case mix or workload associations help explain the pattern?
 
-The report will distinguish slower handling within categories from a larger share of complex requests. It will show sample sizes, exclusions, quality issues, and limitations.
+The report distinguishes slower handling within categories from a larger share of complex requests. It shows sample sizes, exclusions, quality issues, and limitations.
 
 ## Control boundary
 
@@ -36,19 +36,19 @@ The report will distinguish slower handling within categories from a larger shar
 
 The model may select approved tools and explain validated results. It may not execute arbitrary Python or SQL, modify input records, change quality rules, invent evidence, or turn an association into established causation.
 
-## Planned architecture
+## Architecture
 
 Dataset validation → bounded analysis plan → approved calculations → evidence verification → charts and report.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for contracts, execution limits, and failure handling.
-See [DATA_CONTRACT.md](DATA_CONTRACT.md) for the proposed inputs and reporting semantics.
+See [DATA_CONTRACT.md](DATA_CONTRACT.md) for the inputs and reporting semantics.
 See [EVALUATION.md](EVALUATION.md) for known-answer scenarios and release criteria.
 
-Planned tools: Python, Pydantic, Pandas, SQLite, pytest, Streamlit, and charts generated from validated result tables. Dependencies will be introduced as each component is built.
+Tools: Python, Pydantic, Pandas, SQLite, pytest, Streamlit, Requests, and charts generated from validated result tables.
 
 ## Scope and data
 
-The demonstration will use bundled synthetic records for one fictional company, three regions, and three service categories over three full months. No real customer, employee, or business records are needed.
+The demonstration uses bundled synthetic records for one fictional company, three regions, and three service categories over three full months. No real customer, employee, or business records are needed.
 
 Resolution reports describe **completed requests grouped by resolution month**. They do not measure unresolved backlog, all incoming-request cohorts, or the full customer experience. Workload comparisons use opening dates and region and do not establish causation.
 
@@ -125,13 +125,13 @@ Every result discloses completed-request selection bias, unadjusted case mix and
 
 Three deterministic recipes are available through `deterministic_plan()`: `resolution_change`, `segments`, and `drivers`. Drivers require an explicit opening-date period for workload analysis.
 
-`run_analysis(dataset, plan)` returns a typed run report. `run_analysis_iter()` streams actual lifecycle events followed by that report. An optional application adapter can propose one follow-up plan using computed outcomes, and one rejected plan can receive a correction. No model service is connected yet.
+`run_analysis(dataset, plan)` returns a typed run report. `run_analysis_iter()` streams actual lifecycle events followed by that report. An optional application adapter can propose one follow-up plan using computed outcomes, and one rejected plan can receive a correction. The optional HF transport connects the public demo to inference; deterministic mode needs no model service.
 
 Plans can select only summarize, compare, decompose, and workload calls. The application rejects unknown fields/tools, duplicate calls, invalid dependencies, out-of-coverage periods, and overlapping comparisons before executing any step in that round. Plans cannot change calculation or quality policy.
 
 The run reserves at most six top-level steps across at most two accepted rounds. Blocked and skipped steps still consume reserved slots. Dependencies use zero-based positions across the whole run; application-generated IDs appear in outcomes. Only a completed prerequisite allows its dependent step to execute. Independent steps can continue after another step fails.
 
-Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. The provider-neutral model boundary and deterministic demo are available below; live provider evaluation remains pending.
+Reports distinguish rejected plans, blocked analyses, failed calculations, partial results, and skipped dependencies. Invalid tool outputs are withheld; exception text is replaced by stable error codes. These controls validate computed results; structured finding verification is available below. Reports and SVG charts are available below. The provider-neutral model boundary and deterministic demo are available below; the default live AI path passed the bounded check recorded below.
 
 ## Structured findings and evidence verification
 
@@ -163,9 +163,9 @@ The chart renderer uses the Python standard library and existing schema dependen
 
 `run_assisted_analysis(dataset, request, transport=None)` orchestrates planning, approved calculations, finding verification, and report assembly. With no transport it uses the deterministic plan and factual findings without inference. An injected application transport implements `complete(ModelRequest) -> ModelResponse`; the optional HF transport below supplies the network boundary. The default UI uses no transport; explicit AI submissions use the fixed HF transport.
 
-The adapter sends the actual application JSON schemas, the selected question/periods, aggregate quality counts, readiness flags, and bounded scalar evidence. It sends no raw request records, workload pair tables, original snapshots, row-level issue locations, or prior model text. Findings and follow-ups disclose when the evidence list is truncated.
+The provider-neutral adapter sends application JSON schemas; the HF transport projects findings into a smaller evidence-selection schema. Context includes the selected question/periods, aggregate quality counts, readiness flags, and bounded scalar evidence. It sends no raw request records, workload pair tables, original snapshots, row-level issue locations, or prior model text. Findings and follow-ups disclose when the evidence list is truncated.
 
-A separate model-call budget allows at most four calls: initial planning, one possible correction, one possible follow-up, and findings. The execution engine still owns its six-step budget and single shared correction. Request scopes must match the selected periods. Initial planning requires the overall comparison; missing required question analyses keep the final report partial.
+A separate model-call budget allows at most four calls: initial planning, one possible correction, one possible follow-up, and findings. The execution engine still owns its six-step budget and single shared correction. Request scopes must match the selected periods. Initial planning requires every question-specific minimum call before dispatch; blocked or failed required analyses keep the final report partial.
 
 Transport failures, refused/truncated responses, oversized output, and malformed proposals have explicit outcomes. Deterministic planning fallback runs only before tool dispatch or retained calculation results. Once work has run, it is preserved and tools are not replayed. Bad findings fall back to deterministic facts when none are valid; mixed valid/invalid findings retain quarantine.
 
@@ -190,7 +190,7 @@ Select one of ten scenarios, three questions, and three ordered month comparison
 
 Bundled scenarios cover stable operation, mix change, slower handling, combined change, regional slowdown, constructed workload association, missing categories, missing staffing, exact duplicates, and invalid timestamps. The generator is deterministic and uses three regions, three service categories, and three full months. The workload-only scenario intentionally contains one service category.
 
-This UI accepts only bundled synthetic data and has no upload, secret-entry, or live-model controls. It runs without inference credentials. The displayed selection is stored with its report; ordinary rerenders do not execute tools again. State is session-local and does not claim durable reload/resume.
+This UI accepts only bundled synthetic data and has no upload or secret-entry controls. Deterministic mode runs without inference credentials; AI requires explicit opt-in and submission. The displayed selection is stored with its report; ordinary rerenders do not execute tools again. State is session-local and does not claim durable reload/resume.
 
 CI includes independent scenario oracles and Streamlit AppTest checks for default/alternate selections, incomplete data, failed source validation, execution counts, and rerender behavior. A live browser smoke check on October 10, 2026 confirmed the default completed report, 16 → 32 hour means, +16 hour change, +12 hour mix contribution, +4 hour within-category contribution, sample counts, and interpretation limitations. This check covered the default browser path; the automated suite covers alternate selections and failure scenarios.
 
@@ -217,7 +217,7 @@ Provider references: [HF Groq routing](https://huggingface.co/docs/inference-pro
 
 ### Runtime authentication check
 
-The October 10, 2026 live AI submission returned `HF_AUTH_FAILED` after one model call attempt. The known-answer report remained available through deterministic fallback, with three approved tool calls and a +16 hour change. A Streamlit regression test covers that visible failure. Successful live planning/findings are not yet claimed. The runtime token must be accepted independently of the working deployment token.
+The October 10, 2026 live AI submission returned `HF_AUTH_FAILED` after one model call attempt. The known-answer report remained available through deterministic fallback, with three approved tool calls and a +16 hour change. A Streamlit regression test covers that visible failure. This historical failure was superseded by the successful November 6 check below. Runtime inference and deployment credentials remain separate.
 
 Runtime diagnostics preserve safe HTTP status codes: `HF_AUTH_FAILED_HTTP_401` identifies a credential rejection and `HF_AUTH_FAILED_HTTP_403` identifies an authorization denial. Neither code proves the specific underlying account/token setting; provider text and credentials remain excluded. Simulated transport and UI regressions cover both statuses without retrying inference.
 
@@ -227,7 +227,7 @@ For an otherwise unclassified HTTP 403, the transport makes one read-only, non-i
 
 ### HTTP client compatibility check
 
-The router transport uses Requests, following the documented Hugging Face REST integration. The HTTPS adapter has zero retries, redirects are disabled before response-body preparation, response streaming is bounded, and connection pools are released after each exchange. An explicit Bearer auth handler prevents ambient `.netrc` credentials from replacing the runtime secret while retaining standard TLS verification and runtime proxy configuration. Tests exercise real Requests request preparation with an in-memory HTTP adapter, including authentication, redirects, limits, timeouts, and safe error handling. This replaces the earlier low-level urllib network client; the model/schema and execution/evidence boundaries are unchanged. Live compatibility still requires a production check.
+The router transport uses Requests, following the documented Hugging Face REST integration. The HTTPS adapter has zero retries, redirects are disabled before response-body preparation, response streaming is bounded, and connection pools are released after each exchange. An explicit Bearer auth handler prevents ambient `.netrc` credentials from replacing the runtime secret while retaining standard TLS verification and runtime proxy configuration. Tests exercise real Requests request preparation with an in-memory HTTP adapter, including authentication, redirects, limits, timeouts, and safe error handling. This replaces the earlier low-level urllib network client; the model/schema and execution/evidence boundaries are unchanged. The default production compatibility check subsequently passed, as recorded below.
 
 ### Live HTTP client result — November 6, 2026
 
@@ -246,3 +246,9 @@ The application sends each question's minimum required analytical calls in the m
 The HF findings wire format asks the model for at most four short, request-local evidence IDs and approved investigation topics. Its JSON schema enumerates only selectable, defined facts. The application resolves those selections to the original typed evidence references and exact computed values, then sends the resulting drafts through the existing independent verifier. The model cannot override values or supply observation prose through this format. Unknown IDs or malformed items keep their positions as invalid drafts for normal quarantine; valid items can continue. Underlying evidence identities and exported reports retain their existing provenance. The provider-neutral draft interface remains unchanged.
 
 This smaller generation contract addresses live provider JSON-generation failures while preserving numerical authority in application code. The public audit records model-selected findings; their numbers and rendered observations are still application-derived.
+
+### Successful end-to-end live AI validation — November 6, 2026
+
+Source commit [`b9cf18f`](https://github.com/wushuchris/14-data-analysis-agent/commit/b9cf18f136cdace39e1f4ece65252436647e2ebe) passed 487 tests and container checks before deployment. In the deployed default combined-change scenario, January → February with the drivers question, both planning and finding selection used the model. All three required tools completed (overall comparison, case-mix decomposition, and workload association), with two model calls, no correction, no fallback, and no quarantined findings. Requested work and report status were complete.
+
+The displayed means were 16 and 32 hours, with 30 completed requests in each period. The published +16 hour finding passed independent evidence verification; application code supplied its exact computed value and rendered observation. This validates one bounded default live run, not a reliability rate across models or scenarios. Alternate production checks and final release review remain pending.
