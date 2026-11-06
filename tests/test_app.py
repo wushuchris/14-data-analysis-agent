@@ -180,6 +180,8 @@ def test_ai_exhaustion_remains_usable(monkeypatch):
     ("HF_SERVICE_AUTHORIZATION_DENIED", "service returned an authorization denial"),
     ("HF_UPSTREAM_CLIENT_REJECTED", "service rejected this client request"),
     ("HF_FORBIDDEN_NON_JSON", "non-JSON forbidden response"),
+    ("HF_CREDENTIAL_VALID_INFERENCE_FORBIDDEN", "accepts the runtime credential"),
+    ("HF_RUNTIME_CREDENTIAL_REJECTED", "failed the Hugging Face identity check"),
 ])
 def test_live_auth_failure_regression_keeps_report_and_safe_code(monkeypatch, failure_code, message):
     import service_analysis.demo_inference as demo

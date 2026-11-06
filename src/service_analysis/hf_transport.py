@@ -120,6 +120,29 @@ class HFRouterTransport:
         self._token = token
         self._opener = build_opener(_NoRedirect())
 
+    def _credential_validity(self, timeout):
+        """Non-inference identity check; retain no identity or token metadata."""
+        probe = Request("https://huggingface.co/api/whoami-v2", method="GET",
+            headers={"Authorization": "Bearer " + self._token, "Accept": "application/json"})
+        try:
+            with self._opener.open(probe, timeout=min(timeout, 5)) as response:
+                raw = response.read(16385)
+            if len(raw) > 16384:
+                return None
+            data = _json(raw.decode("utf-8"))
+            if (isinstance(data, dict) and data.get("type") == "user"
+                    and isinstance(data.get("auth"), dict)
+                    and data["auth"].get("type") == "access_token"):
+                return True
+        except HTTPError as error:
+            rejected = error.code == 401
+            error.close()
+            if rejected:
+                return False
+        except Exception:
+            pass
+        return None
+
     def complete(self, request: ModelRequest) -> ModelResponse:
         if (not 128 <= request.maximum_output_tokens <= 4000
                 or not 1 <= request.timeout_seconds <= 60):
@@ -159,6 +182,12 @@ class HFRouterTransport:
         except HTTPError as exc:
             code = _http_error_code(exc)
             exc.close()
+            if code == "HF_AUTH_FAILED_HTTP_403":
+                validity = self._credential_validity(request.timeout_seconds)
+                if validity is True:
+                    code = "HF_CREDENTIAL_VALID_INFERENCE_FORBIDDEN"
+                elif validity is False:
+                    code = "HF_RUNTIME_CREDENTIAL_REJECTED"
             raise AdapterError(code) from None
         except TimeoutError:
             raise TimeoutError("HF_SOCKET_TIMEOUT") from None

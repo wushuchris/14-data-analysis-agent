@@ -86,6 +86,8 @@ def main():
                 "HF_AUTH_FAILED": "Hugging Face rejected the runtime inference credential. This report uses deterministic analysis.",
                 "HF_AUTH_FAILED_HTTP_401": "Hugging Face rejected the runtime inference credential (HTTP 401). This report uses deterministic analysis.",
                 "HF_AUTH_FAILED_HTTP_403": "Hugging Face denied permission for this inference request (HTTP 403). This report uses deterministic analysis.",
+                "HF_CREDENTIAL_VALID_INFERENCE_FORBIDDEN": "Hugging Face accepts the runtime credential, but the inference route still returned HTTP 403. This report uses deterministic analysis.",
+                "HF_RUNTIME_CREDENTIAL_REJECTED": "The runtime credential also failed the Hugging Face identity check. This report uses deterministic analysis.",
                 "HF_RUNTIME_INFERENCE_PERMISSION_DENIED": "The inference service reports that the runtime credential lacks Inference Providers permission. This report uses deterministic analysis.",
                 "HF_SERVICE_AUTHORIZATION_DENIED": "The service returned an authorization denial. This report uses deterministic analysis.",
                 "HF_UPSTREAM_CLIENT_REJECTED": "The service rejected this client request before model output was returned. This report uses deterministic analysis.",

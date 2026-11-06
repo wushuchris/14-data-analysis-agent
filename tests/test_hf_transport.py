@@ -119,7 +119,7 @@ def test_http_failures_sanitized_and_not_retried(monkeypatch, status, code):
     with pytest.raises(AdapterError) as error:
         instance.complete(request())
     assert str(error.value) == code
-    assert len(instance._opener.calls) == 1
+    assert len([req for req, _ in instance._opener.calls if req.method == "POST"]) == 1
 
 
 @pytest.mark.parametrize("error", [TimeoutError("private"), URLError(TimeoutError("private"))])
@@ -127,7 +127,7 @@ def test_timeout_no_retry(monkeypatch, error):
     instance = transport(monkeypatch, error=error)
     with pytest.raises(TimeoutError, match="HF_SOCKET_TIMEOUT"):
         instance.complete(request())
-    assert len(instance._opener.calls) == 1
+    assert len([req for req, _ in instance._opener.calls if req.method == "POST"]) == 1
 
 
 def test_network_error_sanitized(monkeypatch):
@@ -194,5 +194,37 @@ def test_forbidden_diagnostic_is_bounded_sanitized_and_never_retried(monkeypatch
     with pytest.raises(AdapterError) as error:
         instance.complete(request())
     assert str(error.value) == expected
-    assert len(instance._opener.calls) == 1
+    assert len([req for req, _ in instance._opener.calls if req.method == "POST"]) == 1
+    assert "synthetic" not in str(error.value)
+
+
+@pytest.mark.parametrize("probe_body,probe_status,expected", [
+    ({"type":"user","auth":{"type":"access_token","accessToken":{"displayName":"synthetic-private-label"}},
+      "email":"synthetic-private@example.invalid"}, 200, "HF_CREDENTIAL_VALID_INFERENCE_FORBIDDEN"),
+    ({}, 401, "HF_RUNTIME_CREDENTIAL_REJECTED"),
+    ({}, 403, "HF_AUTH_FAILED_HTTP_403"),
+    ({"type":"user"}, 200, "HF_AUTH_FAILED_HTTP_403"),
+])
+def test_forbidden_identity_probe_reveals_only_validity(monkeypatch, probe_body, probe_status, expected):
+    instance = transport(monkeypatch)
+    class ProbeOpener:
+        def __init__(self):
+            self.calls = []
+        def open(self, req, timeout):
+            self.calls.append((req, timeout))
+            if req.method == "POST":
+                raise HTTPError(ENDPOINT, 403, "synthetic private diagnostic", {},
+                                io.BytesIO(b'{"error":"unknown denial"}'))
+            assert req.full_url == "https://huggingface.co/api/whoami-v2"
+            assert timeout <= 5
+            assert req.get_header("Authorization") == "Bearer synthetic-test-credential"
+            if probe_status != 200:
+                raise HTTPError(req.full_url, probe_status, "synthetic private identity error",
+                                {}, io.BytesIO(b"synthetic private body"))
+            return io.BytesIO(json.dumps(probe_body).encode())
+    instance._opener = ProbeOpener()
+    with pytest.raises(AdapterError) as error:
+        instance.complete(request())
+    assert str(error.value) == expected
+    assert [req.method for req, _ in instance._opener.calls] == ["POST", "GET"]
     assert "synthetic" not in str(error.value)
