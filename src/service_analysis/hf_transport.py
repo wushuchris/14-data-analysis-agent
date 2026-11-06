@@ -61,24 +61,23 @@ def provider_schema(schema):
 
 
 def _http_error_code(status, raw):
-    """Return only an application-owned category; never retain provider text."""
+    """Retain only a safe HTTP status and recognized provider failure category."""
     fallback = {401: "HF_AUTH_FAILED_HTTP_401", 403: "HF_AUTH_FAILED_HTTP_403",
                 402: "HF_CREDITS_UNAVAILABLE", 429: "HF_RATE_LIMITED"}.get(
-                    status, "HF_HTTP_FAILED")
-    if status != 403:
+                    status, f"HF_HTTP_{status}" if type(status) is int and 100 <= status <= 599
+                    else "HF_HTTP_FAILED")
+    if status not in (400, 403, 422):
         return fallback
     try:
-        if len(raw) > 4096:
+        if len(raw) > MAX_WIRE_BYTES:
             return fallback
         text = raw.decode("utf-8")
-        # Some infrastructure returns a non-JSON client rejection before the
-        # provider API runs. Report that category without publishing its body.
-        if text.strip().lower() == "error code: 1010":
+        if status == 403 and text.strip().lower() == "error code: 1010":
             return "HF_UPSTREAM_CLIENT_REJECTED"
         try:
             payload = _json(text)
         except (ValueError, TypeError, RecursionError):
-            return "HF_FORBIDDEN_NON_JSON"
+            return "HF_FORBIDDEN_NON_JSON" if status == 403 else fallback
         if not isinstance(payload, dict):
             return fallback
         detail = payload.get("error")
@@ -86,6 +85,22 @@ def _http_error_code(status, raw):
             message, code = detail.get("message"), detail.get("code")
         else:
             message, code = detail, payload.get("code")
+        if status in (400, 422):
+            categories = {
+                "json_validate_failed": "HF_PROVIDER_JSON_GENERATION_FAILED",
+                "invalid_json_schema": "HF_PROVIDER_SCHEMA_REJECTED",
+                "context_length_exceeded": "HF_PROVIDER_CONTEXT_LIMIT",
+                "model_not_found": "HF_PROVIDER_MODEL_UNAVAILABLE",
+            }
+            if isinstance(code, str) and code in categories:
+                return categories[code]
+            if isinstance(message, str):
+                lowered = message.lower()
+                if "json_validate_failed" in lowered or "failed to generate json" in lowered:
+                    return "HF_PROVIDER_JSON_GENERATION_FAILED"
+                if "invalid schema" in lowered or "invalid_json_schema" in lowered:
+                    return "HF_PROVIDER_SCHEMA_REJECTED"
+            return fallback
         if code == "inference_provider_permission_required":
             return "HF_RUNTIME_INFERENCE_PERMISSION_DENIED"
         if isinstance(message, str) and (
@@ -96,7 +111,6 @@ def _http_error_code(status, raw):
             return "HF_SERVICE_AUTHORIZATION_DENIED"
         return fallback
     except Exception:
-        # Diagnostic parsing must never replace or leak the original failure.
         return fallback
 
 
@@ -146,7 +160,7 @@ class HFRouterTransport:
                     headers={"Content-Type": "application/json", "Accept": "application/json"},
                     timeout=(timeout, timeout), stream=True, allow_redirects=False) as response:
                 status = response.status_code
-                raw = _bounded_body(response, limit if status == 200 else 4096)
+                raw = _bounded_body(response, limit)
                 return status, raw
         except requests.exceptions.Timeout:
             raise TimeoutError("HF_SOCKET_TIMEOUT") from None

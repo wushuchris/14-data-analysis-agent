@@ -136,7 +136,7 @@ def test_missing_or_invalid_secret(monkeypatch, token):
 
 @pytest.mark.parametrize("status,code", [(401,"HF_AUTH_FAILED_HTTP_401"), (403,"HF_AUTH_FAILED_HTTP_403"),
     (402,"HF_CREDITS_UNAVAILABLE"), (429,"HF_RATE_LIMITED"),
-    (503,"HF_HTTP_FAILED"), (307,"HF_HTTP_FAILED"), (400,"HF_HTTP_FAILED")])
+    (503,"HF_HTTP_503"), (307,"HF_HTTP_307"), (400,"HF_HTTP_400")])
 def test_http_failures_sanitized_and_not_retried(monkeypatch, status, code):
     instance = transport(monkeypatch, status=status, body=b'{"error":"private provider body"}')
     with pytest.raises(AdapterError) as error:
@@ -195,7 +195,7 @@ def test_invalid_request_no_network(monkeypatch, values, code):
 
 def test_redirect_is_never_followed(monkeypatch):
     instance = transport(monkeypatch, status=307, body=b"synthetic redirect")
-    with pytest.raises(AdapterError, match="HF_HTTP_FAILED"):
+    with pytest.raises(AdapterError, match="HF_HTTP_307"):
         instance.complete(request())
     assert len(instance._test_adapter.calls) == 1
     assert instance._test_adapter.calls[0][0].url == ENDPOINT
@@ -213,7 +213,7 @@ def test_redirect_is_never_followed(monkeypatch):
     (b"<html>synthetic forbidden page</html>", "HF_FORBIDDEN_NON_JSON"),
     (b'{"error":"unknown synthetic diagnostic"}', "HF_AUTH_FAILED_HTTP_403"),
     (b'{"error":[]}', "HF_AUTH_FAILED_HTTP_403"),
-    (b"x" * 4097, "HF_AUTH_FAILED_HTTP_403"),
+    (b"x" * (MAX_WIRE_BYTES + 1), "HF_AUTH_FAILED_HTTP_403"),
 ])
 def test_forbidden_diagnostic_is_bounded_sanitized_and_never_retried(monkeypatch, body, expected):
     instance = transport(monkeypatch, status=403, body=body)
@@ -262,3 +262,22 @@ def test_repeated_model_rounds_release_connections(monkeypatch):
         assert instance.complete(request()).finish_reason == "stop"
     assert len(instance._test_adapter.calls) == 3
     assert instance._test_adapter.close_count == 3
+
+
+@pytest.mark.parametrize("status,body,expected", [
+    (400, {"error":{"code":"json_validate_failed","message":"Failed to generate JSON.",
+                     "failed_generation":"synthetic private output " * 300}},
+     "HF_PROVIDER_JSON_GENERATION_FAILED"),
+    (400, {"error":{"code":"invalid_json_schema","message":"synthetic private schema"}},
+     "HF_PROVIDER_SCHEMA_REJECTED"),
+    (422, {"error":{"code":"context_length_exceeded","message":"synthetic private prompt"}},
+     "HF_PROVIDER_CONTEXT_LIMIT"),
+    (400, {"error":"synthetic opaque diagnostic"}, "HF_HTTP_400"),
+])
+def test_finding_http_failure_category_does_not_expose_generated_text(monkeypatch, status, body, expected):
+    instance = transport(monkeypatch, status=status, body=json.dumps(body).encode())
+    with pytest.raises(AdapterError) as error:
+        instance.complete(request(purpose="findings"))
+    assert str(error.value) == expected
+    assert "synthetic" not in str(error.value)
+    assert len(instance._test_adapter.calls) == 1

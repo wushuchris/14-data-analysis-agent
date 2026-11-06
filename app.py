@@ -92,6 +92,8 @@ def main():
                 "HF_SERVICE_AUTHORIZATION_DENIED": "The service returned an authorization denial. This report uses deterministic analysis.",
                 "HF_UPSTREAM_CLIENT_REJECTED": "The service rejected this client request before model output was returned. This report uses deterministic analysis.",
                 "HF_FORBIDDEN_NON_JSON": "The inference request received a non-JSON forbidden response. This report uses deterministic analysis.",
+                "HF_PROVIDER_JSON_GENERATION_FAILED": "AI finding generation failed. This report retains verified calculations and deterministic findings.",
+                "HF_PROVIDER_SCHEMA_REJECTED": "The inference service rejected a response schema. This report retains verified calculations and deterministic findings.",
                 "HF_CREDITS_UNAVAILABLE": "Inference credits are unavailable. This report retains verified results and deterministic findings.",
                 "HF_RATE_LIMITED": "The inference service limited this request. This report retains verified results and deterministic findings.",
                 "MODEL_TIMEOUT": "The AI request timed out. This report retains verified results and deterministic findings.",
